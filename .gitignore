@@ -1,0 +1,16 @@
+# Python virtual environment — never upload this
+venv/
+
+# Disk cache — rebuilds automatically on first run
+cache_store/
+
+# Python bytecode files
+__pycache__/
+*.pyc
+*.pyo
+
+# Mac system files
+.DS_Store
+
+# Streamlit secrets (if you ever add API keys later)
+.streamlit/secrets.toml
