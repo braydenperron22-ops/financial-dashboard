@@ -12,7 +12,7 @@ from data.fetcher import (
     get_header_ticker_data, get_indices_data,
     get_market_confidence_index, get_market_status, get_portfolio_data,
     get_risk_breadth, get_sectors_data, get_treasury_yields,
-    get_volatility_data, get_market_news, prefetch_all,
+    get_volatility_data, get_ai_market_summary, prefetch_all,
 )
 
 st.set_page_config(page_title="MARKET TERMINAL", layout="wide",
@@ -222,56 +222,28 @@ def get_ticker_html():
 st.markdown(get_ticker_html(), unsafe_allow_html=True)
 
 # =============================================================================
-# NEWS FRAGMENT  — RSS feeds, refreshes every 60 minutes
+# AI SUMMARY FRAGMENT  — calls Claude API with live data, refreshes hourly
 # =============================================================================
 @st.fragment(run_every=3600)
-def news_bar():
-    headlines = get_market_news()
-    if not headlines:
-        st.markdown(
-            '<div style="background:#080808;border-bottom:1px solid #1e1e1e;'
-            'padding:5px 14px;font-size:11px;color:#444;">Fetching headlines…</div>',
-            unsafe_allow_html=True)
+def summary_bar():
+    summary = get_ai_market_summary()
+    if not summary:
         return
+    now_et  = datetime.now(pytz.timezone("America/New_York"))
+    time_str = now_et.strftime("%-I:%M %p ET")
+    st.markdown(
+        f'<div style="background:#080d08;border-left:4px solid #00e676;'
+        f'border-bottom:1px solid #1e1e1e;padding:8px 16px;'
+        f'display:flex;align-items:center;gap:14px;">'
+        f'<span style="color:#00e676;font-size:9px;font-weight:700;'
+        f'letter-spacing:2px;white-space:nowrap;flex-shrink:0;">AI SUMMARY</span>'
+        f'<span style="color:#e8e8e8;font-size:13px;font-weight:500;flex:1;">'
+        f'{summary}</span>'
+        f'<span style="color:#404040;font-size:10px;white-space:nowrap;flex-shrink:0;">'
+        f'Updated {time_str}</span>'
+        f'</div>',
+        unsafe_allow_html=True)
 
-    breaking = [h for h in headlines if h["breaking"]]
-    regular  = [h for h in headlines if not h["breaking"]]
-
-    for h in breaking[:3]:
-        age_str = f"{h['age_minutes']}m ago" if h['age_minutes'] < 60 else f"{h['age_minutes']//60}h ago"
-        st.markdown(
-            f'<div style="background:#1a0000;border-left:4px solid #ff1744;'
-            f'border-bottom:1px solid #330000;padding:7px 14px;'
-            f'display:flex;align-items:center;gap:12px;">'
-            f'<span style="background:#ff1744;color:#fff;font-size:9px;font-weight:700;'
-            f'letter-spacing:2px;padding:2px 7px;border-radius:1px;flex-shrink:0;">BREAKING</span>'
-            f'<span style="color:#fff;font-size:13px;font-weight:600;flex:1;">{h["title"]}</span>'
-            f'<span style="color:#888;font-size:10px;flex-shrink:0;">'
-            f'{h["source"]} · {age_str}</span></div>',
-            unsafe_allow_html=True)
-
-    if regular:
-        items = []
-        for h in regular[:10]:
-            age_str = f"{h['age_minutes']}m ago" if h['age_minutes'] < 60 else f"{h['age_minutes']//60}h ago"
-            items.append(
-                f'<span style="display:inline-flex;align-items:baseline;gap:8px;'
-                f'margin:0 30px;white-space:nowrap;">'
-                f'<span style="color:#00bcd4;font-size:10px;font-weight:600;">'
-                f'{h["source"]}</span>'
-                f'<span style="color:#e8e8e8;font-size:13px;font-weight:500;">'
-                f'{h["title"]}</span>'
-                f'<span style="color:#505050;font-size:10px;">{age_str}</span>'
-                f'</span>')
-        row = "".join(items)
-        st.markdown(
-            f'<div style="overflow:hidden;background:#080808;'
-            f'border-bottom:1px solid #1e1e1e;padding:6px 0;">'
-            f'<div style="display:inline-block;white-space:nowrap;'
-            f'animation:tkr 100s linear infinite;">{row}{row}</div></div>',
-            unsafe_allow_html=True)
-
-news_bar()
 
 # =============================================================================
 # TOP ROW FRAGMENT  — clock + indices, every 60 s
@@ -376,9 +348,6 @@ with col_port:
         ret    = pf.get("return_ytd") if MODE == "YTD" else pf.get("return_1d")
         x_pct  = xeqt.get(KEY)
         b_pct  = btc.get(KEY)
-        x_contrib = round(x_pct * 0.80, 2) if x_pct is not None else None
-        b_contrib = round(b_pct * 0.20, 2) if b_pct is not None else None
-
         stats = (
             f'<div class="stats-row">'
             f'<div class="stat-box"><div class="stat-lbl">Return ({MODE})</div>'
@@ -393,23 +362,23 @@ with col_port:
             f'</div>')
 
         table = (
-            f'<div class="pt-hd">'
+            f'<div class="pt-hd" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div>Ticker</div><div>Price</div><div>Change ({MODE})</div>'
-            f'<div style="text-align:right;">Weighted Contrib.</div></div>'
-            f'<div class="pt-r">'
+            f'<div style="text-align:right;">Portfolio Return</div></div>'
+            f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">XEQT</div>'
             f'<div class="pt-px">{fp(xeqt.get("price"))}</div>'
             f'<div class="pt-ch {cl(x_pct)}">{ar(x_pct)}{fpc(x_pct)}</div>'
             f'<div style="text-align:right;">'
-            f'<div class="pt-ret {cl(x_contrib)}">{fpc(x_contrib)}</div>'
-            f'<div class="pt-wt">80% × {fpc(x_pct)}</div></div></div>'
-            f'<div class="pt-r">'
+            f'<div class="pt-ret {cl(ret)}">{fpc(ret)}</div>'
+            f'<div class="pt-wt">BLENDED 80/20</div></div></div>'
+            f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">BTC</div>'
             f'<div class="pt-px">${fp(btc.get("price"),0)}</div>'
             f'<div class="pt-ch {cl(b_pct)}">{ar(b_pct)}{fpc(b_pct)}</div>'
             f'<div style="text-align:right;">'
-            f'<div class="pt-ret {cl(b_contrib)}">{fpc(b_contrib)}</div>'
-            f'<div class="pt-wt">20% × {fpc(b_pct)}</div></div></div>')
+            f'<div class="pt-wt" style="margin-top:18px;">20% WEIGHT</div>'
+            f'</div></div></div>')
 
         st.markdown(
             f'<div class="card"><div class="card-hdr">'
