@@ -102,7 +102,7 @@ st.markdown("""
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 2.5px;
-  color: #3a3a3a;
+  color: #909090;
   text-transform: uppercase;
   padding-bottom: 9px;
   margin-bottom: 11px;
@@ -128,7 +128,7 @@ st.markdown("""
   border-right: 1px solid #1e1e1e;
 }
 .idx-cell:last-of-type { border-right: none; }
-.idx-lbl  { font-size: 9px;  color: #3a3a3a; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+.idx-lbl  { font-size: 9px;  color: #909090; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
 .idx-pct  { font-size: 30px; font-weight: 800; line-height: 1; }
 .idx-px   { font-size: 12px; color: #707070; margin-top: 6px; }
 
@@ -141,7 +141,7 @@ st.markdown("""
   background: #090909;
 }
 .clock-time { font-size: 38px; font-weight: 800; color: #fff; line-height: 1; text-align: center; }
-.clock-sub  { font-size: 9px; color: #3a3a3a; letter-spacing: 2px; margin-top: 5px; text-align: center; }
+.clock-sub  { font-size: 9px; color: #909090; letter-spacing: 2px; margin-top: 5px; text-align: center; }
 
 .mkt-cell {
   width: 210px; flex-shrink: 0;
@@ -162,11 +162,11 @@ st.markdown("""
 .mci-lbl { font-size: 22px;  font-weight: 700; text-align: center; letter-spacing: 2px; margin-top: 4px; }
 .vix-duo { display: flex; justify-content: space-between; margin-top: 14px; padding-top: 12px; border-top: 1px solid #1a1a1a; }
 .vix-blk { text-align: center; flex: 1; }
-.vix-l   { font-size: 10px; color: #3a3a3a; letter-spacing: 1.5px; margin-bottom: 5px; }
+.vix-l   { font-size: 10px; color: #909090; letter-spacing: 1.5px; margin-bottom: 5px; }
 .vix-v   { font-size: 28px; font-weight: 800; }
 .fbar    { margin-top: 14px; padding-top: 12px; border-top: 1px solid #1a1a1a; }
 .fb-row  { margin-bottom: 6px; }
-.fb-top  { display: flex; justify-content: space-between; font-size: 9px; color: #3a3a3a; margin-bottom: 3px; }
+.fb-top  { display: flex; justify-content: space-between; font-size: 9px; color: #909090; margin-bottom: 3px; }
 .fb-bg   { background: #111; height: 4px; border-radius: 1px; }
 .fb-fill { height: 4px; border-radius: 1px; opacity: .6; }
 
@@ -175,10 +175,10 @@ st.markdown("""
    ══════════════════════════════════════════ */
 .stats-row  { display: flex; gap: 8px; margin-bottom: 12px; }
 .stat-box   { flex: 1; background: #0d0d0d; border: 1px solid #1a1a1a; border-radius: 2px; padding: 8px 11px; }
-.stat-lbl   { font-size: 8px; color: #3a3a3a; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
+.stat-lbl   { font-size: 8px; color: #909090; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
 .stat-val   { font-size: 18px; font-weight: 700; }
 .pt-hd      { display: grid; grid-template-columns: 1fr 1.1fr 1fr 1fr;
-              font-size: 9px; color: #3a3a3a; letter-spacing: 1.5px; text-transform: uppercase;
+              font-size: 9px; color: #909090; letter-spacing: 1.5px; text-transform: uppercase;
               padding-bottom: 7px; border-bottom: 1px solid #1a1a1a; }
 .pt-r       { display: grid; grid-template-columns: 1fr 1.1fr 1fr 1fr;
               padding: 11px 0; border-bottom: 1px solid #0d0d0d; align-items: center; }
@@ -187,7 +187,7 @@ st.markdown("""
 .pt-px      { font-size: 20px; font-weight: 700; }
 .pt-ch      { font-size: 20px; font-weight: 800; }
 .pt-ret     { font-size: 34px; font-weight: 900; text-align: right; line-height: 1; }
-.pt-wt      { font-size: 10px; color: #3a3a3a; text-align: right; margin-top: 3px; }
+.pt-wt      { font-size: 10px; color: #909090; text-align: right; margin-top: 3px; }
 .pt-foot    { display: flex; justify-content: space-between; margin-top: 10px;
               padding-top: 9px; border-top: 1px solid #1a1a1a; font-size: 11px; }
 
@@ -208,7 +208,7 @@ st.markdown("""
    ══════════════════════════════════════════ */
 .big-wrap  { text-align: center; padding: 6px 0; }
 .big-num   { font-size: 60px; font-weight: 900; letter-spacing: -2px; line-height: 1; margin: 8px 0 4px; }
-.big-sub   { font-size: 9px; color: #3a3a3a; letter-spacing: 1.5px; }
+.big-sub   { font-size: 9px; color: #909090; letter-spacing: 1.5px; }
 .big-chg   { font-size: 14px; font-weight: 700; margin-top: 6px; }
 .tag       { display: inline-block; font-size: 14px; font-weight: 800;
              letter-spacing: 1px; padding: 5px 16px; border-radius: 2px; margin-top: 10px; }
@@ -222,7 +222,7 @@ st.markdown("""
    YIELDS
    ══════════════════════════════════════════ */
 .y-hd  { display: grid; grid-template-columns: 1.3fr 1fr 1fr;
-         font-size: 8px; color: #3a3a3a; letter-spacing: 1.5px; text-transform: uppercase;
+         font-size: 8px; color: #909090; letter-spacing: 1.5px; text-transform: uppercase;
          padding-bottom: 7px; border-bottom: 1px solid #1a1a1a; }
 .y-row { display: grid; grid-template-columns: 1.3fr 1fr 1fr;
          padding: 7px 0; border-bottom: 1px solid #0d0d0d; align-items: center; }
@@ -241,7 +241,7 @@ st.markdown("""
 .gld { color: #ffd54f !important; }
 .t0  { color: #ffffff !important; }
 .t1  { color: #b0b0b0 !important; }
-.t2  { color: #3a3a3a !important; }
+.t2  { color: #909090 !important; }
 
 /* ══════════════════════════════════════════
    BADGE
@@ -356,7 +356,7 @@ def top_row():
         f'<div class="mkt-cd">{market.get("countdown","")}</div>'
         f'</div></div></div>'
         f'<div style="background:#060606;padding:3px 14px;'
-        f'border-bottom:2px solid #1e1e1e;font-size:8px;color:#282828;letter-spacing:2px;">'
+        f'border-bottom:2px solid #1e1e1e;font-size:8px;color:#707070;letter-spacing:2px;">'
         f'INDICES &nbsp;{badge(MODE)}</div>',
         unsafe_allow_html=True)
 
