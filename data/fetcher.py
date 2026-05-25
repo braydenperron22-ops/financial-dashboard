@@ -910,3 +910,120 @@ def get_ai_market_summary() -> str:
         return ""
 
     return fetch_with_cache(key, _fetch, ttl=3600) or ""
+
+
+# =============================================================================
+# SECTION 18 — MARKET NEWS (Google News RSS + BBC Business)
+# =============================================================================
+
+def get_market_news() -> List[Dict[str, Any]]:
+    """
+    Fetch financial headlines from Google News RSS and BBC Business RSS.
+
+    Google News RSS is the most reliable free feed — no auth, no blocking,
+    aggregates from hundreds of publishers. BBC Business is a solid backup.
+
+    Uses requests + stdlib xml.etree only — zero extra dependencies.
+    Spoofs a browser User-Agent to avoid bot filtering.
+    Cached for 15 minutes so headlines stay fresh but we don't hammer feeds.
+
+    Returns list of dicts:
+        title       : str
+        source      : str
+        age_minutes : int
+        breaking    : bool  — True if < 60 minutes old
+    """
+    key = "market_news_v2"
+
+    FEEDS = [
+        ("Google News",
+         "https://news.google.com/rss/search"
+         "?q=stock+market+finance+economy&hl=en-US&gl=US&ceid=US:en"),
+        ("Google News Markets",
+         "https://news.google.com/rss/topics"
+         "/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB"),
+        ("BBC Business",
+         "https://feeds.bbci.co.uk/news/business/rss.xml"),
+    ]
+
+    HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/rss+xml, application/xml, text/xml, */*",
+    }
+
+    def _parse_pub_date(date_str: str):
+        import email.utils
+        try:
+            parsed = email.utils.parsedate_tz(date_str)
+            if parsed:
+                return float(email.utils.mktime_tz(parsed))
+        except Exception:
+            pass
+        return None
+
+    def _clean_title(title: str) -> str:
+        """Google News appends '- Source Name' to titles — strip it."""
+        # Remove trailing source attribution like " - Reuters" or " | CNBC"
+        import re
+        title = re.sub(r'\s[-|]\s[A-Z][^-|]{2,40}$', '', title).strip()
+        return title
+
+    def _fetch():
+        import time as _time
+        import xml.etree.ElementTree as ET
+        import requests as _req
+
+        now_ts = _time.time()
+        seen   = set()
+        items  = []
+
+        for source_name, url in FEEDS:
+            try:
+                resp = _req.get(url, headers=HEADERS, timeout=12)
+                if resp.status_code != 200:
+                    logger.warning("Feed %s → HTTP %s", source_name, resp.status_code)
+                    continue
+
+                root    = ET.fromstring(resp.content)
+                channel = root.find("channel")
+                if channel is None:
+                    channel = root
+                entries = channel.findall("item")
+
+                for entry in entries[:10]:
+                    raw_title = (entry.findtext("title") or "").strip()
+                    title     = _clean_title(raw_title)
+                    if not title or title in seen:
+                        continue
+                    seen.add(title)
+
+                    pub_str = entry.findtext("pubDate") or ""
+                    pub_ts  = _parse_pub_date(pub_str) if pub_str else now_ts
+                    if pub_ts is None:
+                        pub_ts = now_ts
+
+                    age_min = max(0, int((now_ts - pub_ts) / 60))
+
+                    # Pull source from <source> tag if present (Google News includes it)
+                    src_el = entry.find("source")
+                    src    = (src_el.text if src_el is not None else source_name) or source_name
+
+                    items.append({
+                        "title":       title,
+                        "source":      src,
+                        "age_minutes": age_min,
+                        "breaking":    age_min <= 60,
+                    })
+
+            except Exception as exc:
+                logger.warning("News fetch failed for %s: %s", source_name, exc)
+
+        # Sort newest first, deduplicated, cap at 15
+        items.sort(key=lambda x: x["age_minutes"])
+        return items[:15]
+
+    return fetch_with_cache(key, _fetch, ttl=900) or []

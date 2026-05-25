@@ -9,7 +9,7 @@ from data.fetcher import (
     get_header_ticker_data, get_indices_data,
     get_market_confidence_index, get_market_status, get_portfolio_data,
     get_risk_breadth, get_sectors_data, get_treasury_yields,
-    get_volatility_data, get_ai_market_summary, prefetch_all,
+    get_volatility_data, get_ai_market_summary, get_market_news, prefetch_all,
 )
 
 st.set_page_config(page_title="MARKET TERMINAL", layout="wide",
@@ -219,15 +219,31 @@ def is_market_hours() -> bool:
     t = now.hour * 60 + now.minute
     return 9 * 60 + 30 <= t < 16 * 60
 
+def in_reset_window() -> bool:
+    """True outside NYSE hours — weekend or weekday 4am-9:30am ET."""
+    return not is_market_hours()
+
 def pct_1d_display(val, is_btc=False):
     """
-    Return the display value for a 1D % change.
-    Outside market hours (weekends + pre-market), zero out non-BTC assets.
-    BTC trades 24/7 so it always shows real data.
+    During reset window, return None for non-BTC so we can render
+    0.00% in white with no arrow. BTC is live 24/7.
     """
-    if not is_btc and not is_market_hours():
-        return 0.0
+    if not is_btc and in_reset_window():
+        return None   # None = reset state, rendered as white 0.00% / no arrow
     return val
+
+def fmt_1d(val, is_btc=False):
+    """
+    Format a 1D change for display.
+    Reset window (non-BTC): white 0.00%, no arrow.
+    Normal: coloured with arrow.
+    Returns (colour_class, arrow_str, display_str)
+    """
+    if not is_btc and in_reset_window():
+        return "t0", "", "+0.00%"
+    if val is None:
+        return "t2", "", "—"
+    return cl(val), ar(val), fpc(val)
 
 # =============================================================================
 # TICKER
@@ -260,6 +276,53 @@ st.markdown(get_ticker_html(), unsafe_allow_html=True)
 # =============================================================================
 # AI SUMMARY
 # =============================================================================
+# =============================================================================
+# NEWS + AI SUMMARY BAR  — news refreshes every 15 min, summary every 60 min
+# =============================================================================
+@st.fragment(run_every=900)
+def news_bar():
+    headlines = get_market_news()
+    if not headlines:
+        return
+
+    breaking = [h for h in headlines if h["breaking"]]
+
+    if breaking:
+        # Show the single most urgent breaking headline
+        h       = breaking[0]
+        age_str = f"{h['age_minutes']}m ago" if h['age_minutes'] < 60 else f"{h['age_minutes']//60}h ago"
+        st.markdown(
+            f'<div style="background:#180000;border-left:5px solid #ff1744;'
+            f'border-bottom:2px solid #330000;padding:10px 18px;'
+            f'display:flex;align-items:center;gap:16px;">'
+            f'<span style="background:#ff1744;color:#fff;font-size:10px;'
+            f'font-weight:800;letter-spacing:2px;padding:3px 10px;'
+            f'border-radius:2px;flex-shrink:0;white-space:nowrap;">⚡ BREAKING</span>'
+            f'<span style="color:#ffffff;font-size:14px;font-weight:600;flex:1;">'
+            f'{h["title"]}</span>'
+            f'<span style="color:#888;font-size:11px;white-space:nowrap;flex-shrink:0;">'
+            f'{h["source"]} · {age_str}</span>'
+            f'</div>',
+            unsafe_allow_html=True)
+    else:
+        # Quiet — show most recent headline as a neutral context line
+        h       = headlines[0]
+        age_str = f"{h['age_minutes']}m ago" if h['age_minutes'] < 60 else f"{h['age_minutes']//60}h ago"
+        st.markdown(
+            f'<div style="background:#060606;border-left:5px solid #404040;'
+            f'border-bottom:2px solid #1e1e1e;padding:10px 18px;'
+            f'display:flex;align-items:center;gap:16px;">'
+            f'<span style="color:#707070;font-size:10px;font-weight:700;'
+            f'letter-spacing:2px;flex-shrink:0;white-space:nowrap;">HEADLINES</span>'
+            f'<span style="color:#d0d0d0;font-size:13px;font-weight:500;flex:1;">'
+            f'{h["title"]}</span>'
+            f'<span style="color:#505050;font-size:11px;white-space:nowrap;flex-shrink:0;">'
+            f'{h["source"]} · {age_str}</span>'
+            f'</div>',
+            unsafe_allow_html=True)
+
+news_bar()
+
 @st.fragment(run_every=3600)
 def summary_bar():
     summary = get_ai_market_summary()
@@ -269,13 +332,13 @@ def summary_bar():
     time_str = now_et.strftime("%-I:%M %p ET")
     st.markdown(
         f'<div style="background:#080d08;border-left:4px solid #00e676;'
-        f'border-bottom:1px solid #1e1e1e;padding:8px 16px;'
+        f'border-bottom:1px solid #1e1e1e;padding:7px 16px;'
         f'display:flex;align-items:center;gap:14px;">'
         f'<span style="color:#00e676;font-size:9px;font-weight:700;'
         f'letter-spacing:2px;white-space:nowrap;flex-shrink:0;">AI SUMMARY</span>'
         f'<span style="color:#e8e8e8;font-size:13px;font-weight:500;flex:1;">'
         f'{summary}</span>'
-        f'<span style="color:#404040;font-size:10px;white-space:nowrap;flex-shrink:0;">'
+        f'<span style="color:#505050;font-size:10px;white-space:nowrap;flex-shrink:0;">'
         f'Updated {time_str}</span>'
         f'</div>',
         unsafe_allow_html=True)
@@ -297,12 +360,14 @@ def top_row():
     idx_cells = ""
     for name, d in indices.items():
         raw = d.get(KEY)
-        # Apply market-hours zeroing for 1D mode
-        pct = pct_1d_display(raw) if KEY == "pct_1d" else raw
+        if KEY == "pct_1d":
+            colour, arrow, display = fmt_1d(raw)
+        else:
+            colour, arrow, display = cl(raw), ar(raw), fpc(raw, 2)
         idx_cells += (
             f'<div class="idx-cell">'
             f'<div class="idx-lbl">{name}</div>'
-            f'<div class="idx-pct {cl(pct)}">{fpc(pct, 2)}</div>'
+            f'<div class="idx-pct {colour}">{arrow}{display}</div>'
             f'<div class="idx-px">${fp(d.get("price"))}</div>'
             f'</div>')
 
@@ -403,12 +468,20 @@ with col_port:
 
         raw_x  = xeqt.get(KEY)
         raw_b  = btc.get(KEY)
-        # Zero out XEQT 1D outside market hours; BTC is 24/7
-        x_pct  = pct_1d_display(raw_x, is_btc=False) if KEY == "pct_1d" else raw_x
-        b_pct  = pct_1d_display(raw_b, is_btc=True)  if KEY == "pct_1d" else raw_b
-        # Portfolio return also zeroed outside hours when in 1D mode
-        if KEY == "pct_1d" and not is_market_hours():
-            ret = 0.0
+        if KEY == "pct_1d":
+            xc, xa, xd = fmt_1d(raw_x, is_btc=False)
+            bc, ba, bd = fmt_1d(raw_b, is_btc=True)
+            if in_reset_window():
+                ret = None   # show as white 0.00% via fmt_1d
+                rc, ra, rd = "t0", "", "+0.00%"
+            else:
+                rc, ra, rd = cl(ret), ar(ret), fpc(ret)
+        else:
+            xc, xa, xd = cl(raw_x), ar(raw_x), fpc(raw_x)
+            bc, ba, bd = cl(raw_b), ar(raw_b), fpc(raw_b)
+            rc, ra, rd = cl(ret), ar(ret), fpc(ret)
+        x_pct = raw_x  # keep for legacy compat
+        b_pct = raw_b
 
         stats = (
             f'<div class="stats-row">'
@@ -430,14 +503,14 @@ with col_port:
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">XEQT</div>'
             f'<div class="pt-px">{fp(xeqt.get("price"))}</div>'
-            f'<div class="pt-ch {cl(x_pct)}">{ar(x_pct)}{fpc(x_pct)}</div>'
+            f'<div class="pt-ch {xc}">{xa}{xd}</div>'
             f'<div style="text-align:right;">'
-            f'<div class="pt-ret {cl(ret)}">{fpc(ret)}</div>'
+            f'<div class="pt-ret {rc}">{ra}{rd}</div>'
             f'<div class="pt-wt">BLENDED 80/20</div></div></div>'
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">BTC</div>'
             f'<div class="pt-px">${fp(btc.get("price"),0)}</div>'
-            f'<div class="pt-ch {cl(b_pct)}">{ar(b_pct)}{fpc(b_pct)}</div>'
+            f'<div class="pt-ch {bc}">{ba}{bd}</div>'
             f'<div style="text-align:right;">'
             f'<div class="pt-wt" style="margin-top:18px;">20% WEIGHT · 24/7</div>'
             f'</div></div></div>')
@@ -474,11 +547,14 @@ def bottom_row():
             rows = []
             for name, d in lst:
                 raw = d.get(KEY)
-                pct = pct_1d_display(raw) if KEY == "pct_1d" else raw
+                if KEY == "pct_1d":
+                    colour, arrow, display = fmt_1d(raw)
+                else:
+                    colour, arrow, display = cl(raw), ar(raw), fpc(raw)
                 rows.append(
                     f'<div class="sec-r">'
                     f'<span class="sec-n">{name}</span>'
-                    f'<span class="sec-pct {cl(pct)}">{fpc(pct)}</span>'
+                    f'<span class="sec-pct {colour}">{arrow}{display}</span>'
                     f'</div>')
             return "".join(rows)
 
