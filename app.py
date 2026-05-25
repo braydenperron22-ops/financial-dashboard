@@ -32,6 +32,9 @@ section.main > div { padding-top:0 !important; }
 div[data-testid="stAppViewContainer"] { padding-top:0 !important; margin-top:0 !important; }
 div[data-testid="stAppViewBlockContainer"] { padding-top:0 !important; margin-top:0 !important; }
 div[data-testid="block-container"] { padding-top:0 !important; margin-top:0 !important; }
+div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
+.appview-container .main .block-container { padding-top:0 !important; margin-top:-80px !important; }
+iframe { display:block; }
 [data-testid="stHorizontalBlock"] { gap:0 !important; padding:0 !important; }
 [data-testid="column"]>div        { padding:0 !important; }
 [data-testid="stVerticalBlock"]   { gap:0 !important; }
