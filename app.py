@@ -288,12 +288,15 @@ def fmt_1d_with_holiday(val, asset_type: str = "us"):
     """
     Like fmt_1d but also applies holiday zero-out for the correct exchange.
     Returns (colour_class, arrow_str, display_str, is_holiday_bool)
+    Holiday check always wins — even during pre-market on a holiday.
     """
     holiday = get_holiday_state(asset_type)
     if holiday:
+        # It's a holiday — show 0.00% AND flag is_hol=True for "Holiday" label
         return "t0", "", "+0.00%", True
+    # Not a holiday — apply normal reset-window logic
     if asset_type != "btc" and in_reset_window():
-        return "t0", "", "+0.00%", False
+        return "t0", "", "+0.00%", False   # pre-market zero but NOT a holiday
     if val is None:
         return "t2", "", "—", False
     return cl(val), ar(val), fpc(val), False
@@ -490,7 +493,30 @@ def top_row():
             f'</div>')
 
     session = get_session()
-    if session == "open":
+    # Override market status box on US holidays
+    if us_hol:
+        mkt_cls, mkt_col = "mkt-closed", "gld"
+        from datetime import date
+        import pytz as _pytz
+        _today = datetime.now(_pytz.timezone("America/New_York")).date()
+        from data.fetcher import get_us_holidays as _guh
+        _hols = _guh(_today.year)
+        # Find which holiday it is
+        _hol_names = {
+            "Memorial Day": lambda d: d.month==5 and d.weekday()==0 and 25<=d.day<=31,
+            "Independence Day": lambda d: d.month==7 and d.day in (3,4,5),
+            "Labor Day": lambda d: d.month==9 and d.weekday()==0 and 1<=d.day<=7,
+            "Thanksgiving": lambda d: d.month==11 and d.weekday()==3 and 22<=d.day<=28,
+            "Christmas": lambda d: d.month==12 and d.day in (24,25,26),
+            "New Year": lambda d: d.month==1 and d.day in (1,2),
+            "MLK Day": lambda d: d.month==1 and d.weekday()==0 and 15<=d.day<=21,
+            "Presidents Day": lambda d: d.month==2 and d.weekday()==0 and 15<=d.day<=21,
+            "Good Friday": lambda d: d.month in (3,4) and d.weekday()==4,
+            "Juneteenth": lambda d: d.month==6 and d.day in (18,19,20),
+        }
+        _name = next((n for n,fn in _hol_names.items() if fn(_today)), "Market Holiday")
+        mkt_stxt = f"🇺🇸 {_name.upper()}"
+    elif session == "open":
         mkt_cls, mkt_stxt, mkt_col = "mkt-open",   "MARKET: OPEN",   "pos"
     elif session == "pre":
         mkt_cls, mkt_stxt, mkt_col = "mkt-pre",    "PRE-MARKET",     "gld"
