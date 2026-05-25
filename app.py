@@ -1,5 +1,7 @@
 # =============================================================================
-# app.py  —  MARKET TERMINAL  v8
+# app.py  —  MARKET TERMINAL  v9
+# All panels sync on 5-min interval, night mode, breaking news filter,
+# flash animations, ATH/DMA price colouring, ticker fixes
 # =============================================================================
 from datetime import datetime
 import pytz
@@ -9,7 +11,8 @@ from data.fetcher import (
     get_header_ticker_data, get_indices_data,
     get_market_confidence_index, get_market_status, get_portfolio_data,
     get_risk_breadth, get_sectors_data, get_treasury_yields,
-    get_volatility_data, get_ai_market_summary, get_market_news, prefetch_all,
+    get_volatility_data, get_ai_market_summary, get_market_news,
+    get_chart_data, prefetch_all,
 )
 
 st.set_page_config(page_title="MARKET TERMINAL", layout="wide",
@@ -34,7 +37,6 @@ div[data-testid="stAppViewBlockContainer"] { padding-top:0 !important; margin-to
 div[data-testid="block-container"] { padding-top:0 !important; margin-top:0 !important; }
 div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 .appview-container .main .block-container { padding-top:0 !important; margin-top:0 !important; }
-iframe { display:block; }
 [data-testid="stHorizontalBlock"] { gap:0 !important; padding:0 !important; }
 [data-testid="column"]>div        { padding:0 !important; }
 [data-testid="stVerticalBlock"]   { gap:0 !important; }
@@ -82,35 +84,25 @@ iframe { display:block; }
 .mkt-cell { width:210px; flex-shrink:0; padding:13px 14px; display:flex;
   align-items:center; justify-content:center;
   border-left:2px solid #1e1e1e; background:#090909; }
-.mkt-open   { background:#011501; border:2px solid #00e676;  padding:7px 16px; width:100%; text-align:center; }
-.mkt-closed { background:#150101; border:2px solid #ff1744;  padding:7px 16px; width:100%; text-align:center; }
-.mkt-pre    { background:#1a1500; border:2px solid #ffd54f;  padding:7px 16px; width:100%; text-align:center; }
-.mkt-after  { background:#1a1500; border:2px solid #ffd54f;  padding:7px 16px; width:100%; text-align:center; }
+.mkt-open   { background:#011501; border:2px solid #00e676; padding:7px 16px; width:100%; text-align:center; }
+.mkt-closed { background:#150101; border:2px solid #ff1744; padding:7px 16px; width:100%; text-align:center; }
+.mkt-pre    { background:#1a1500; border:2px solid #ffd54f; padding:7px 16px; width:100%; text-align:center; }
+.mkt-after  { background:#1a1500; border:2px solid #ffd54f; padding:7px 16px; width:100%; text-align:center; }
 .mkt-s  { font-size:17px; font-weight:800; letter-spacing:1px; }
 .mkt-cd { font-size:13px; font-weight:600; margin-top:5px; color:#d0d0d0; }
 
-/* MODE BAR — big, obvious timeframe indicator */
-.mode-bar {
-  background:#060606; padding:7px 14px;
-  border-bottom:2px solid #1e1e1e;
-  display:flex; align-items:center; gap:12px;
-}
+/* MODE BAR */
+.mode-bar { background:#060606; padding:7px 14px; border-bottom:2px solid #1e1e1e;
+            display:flex; align-items:center; gap:12px; }
 .mode-label { font-size:10px; color:#707070; letter-spacing:2px; }
-.mode-1d  { font-size:20px; font-weight:800; letter-spacing:3px;
-            color:#00e676; border-bottom:3px solid #00e676;
-            padding-bottom:1px; }
-.mode-1m  { font-size:20px; font-weight:800; letter-spacing:3px;
-            color:#00bcd4; border-bottom:3px solid #00bcd4;
-            padding-bottom:1px; }
-.mode-ytd { font-size:20px; font-weight:800; letter-spacing:3px;
-            color:#ffd54f; border-bottom:3px solid #ffd54f;
-            padding-bottom:1px; }
+.mode-1d  { font-size:20px; font-weight:800; letter-spacing:3px; color:#00e676; border-bottom:3px solid #00e676; padding-bottom:1px; }
+.mode-1m  { font-size:20px; font-weight:800; letter-spacing:3px; color:#00bcd4; border-bottom:3px solid #00bcd4; padding-bottom:1px; }
+.mode-ytd { font-size:20px; font-weight:800; letter-spacing:3px; color:#ffd54f; border-bottom:3px solid #ffd54f; padding-bottom:1px; }
 
 /* MCI */
 .mci-num { font-size:90px; font-weight:900; line-height:1; text-align:center; letter-spacing:-4px; }
 .mci-lbl { font-size:20px; font-weight:700; text-align:center; letter-spacing:2px; margin-top:2px; }
-.vix-duo { display:flex; justify-content:space-between; margin-top:11px;
-           padding-top:10px; border-top:1px solid #1a1a1a; }
+.vix-duo { display:flex; justify-content:space-between; margin-top:11px; padding-top:10px; border-top:1px solid #1a1a1a; }
 .vix-blk { text-align:center; flex:1; }
 .vix-l   { font-size:10px; color:#ffffff; letter-spacing:1.5px; margin-bottom:5px; }
 .vix-v   { font-size:25px; font-weight:800; }
@@ -132,7 +124,7 @@ iframe { display:block; }
              padding:14px 0; border-bottom:1px solid #0d0d0d; align-items:center; }
 .pt-r:last-child { border-bottom:none; }
 .pt-sym    { font-size:34px; font-weight:700; color:#fff; }
-.pt-px     { font-size:31px; font-weight:600; color:#fff; }
+.pt-px     { font-size:31px; font-weight:600; }
 .pt-ch     { font-size:31px; font-weight:700; }
 .pt-ret    { font-size:40px; font-weight:700; text-align:right; line-height:1; }
 .pt-wt     { font-size:12px; color:#c0c0c0; text-align:right; margin-top:5px; font-weight:500; }
@@ -149,24 +141,23 @@ iframe { display:block; }
 
 /* RISK / BREADTH */
 .big-wrap { text-align:center; padding:4px 0; }
-.big-num  { font-size:54px; font-weight:900; letter-spacing:-2px; line-height:1;
-            margin:8px 0 4px; color:#ffffff; }
+.big-num  { font-size:54px; font-weight:900; letter-spacing:-2px; line-height:1; margin:8px 0 4px; color:#ffffff; }
 .big-sub  { font-size:10px; color:#ffffff; letter-spacing:1.5px; }
 .big-chg  { font-size:14px; font-weight:700; margin-top:6px; }
 .tag      { display:inline-block; font-size:13px; font-weight:800; letter-spacing:1px;
             padding:4px 12px; border-radius:2px; margin-top:8px; }
-.tag-on   { background:#011f01; color:#00e676; border:1px solid #005500; }   /* Risk-On / Broad */
-.tag-agg  { background:#002200; color:#00ff88; border:1px solid #007700; }   /* Aggressive */
-.tag-euph { background:#001a00; color:#39ff14; border:1px solid #005500; }   /* Euphoric */
-.tag-lean { background:#071a07; color:#66bb6a; border:1px solid #2e7d32; }   /* Risk-Leaning */
-.tag-neu  { background:#0a0e10; color:#90a4ae; border:1px solid #37474f; }   /* Neutral */
-.tag-def  { background:#1a1200; color:#ffb300; border:1px solid #664d00; }   /* Defensive */
-.tag-off  { background:#1f0101; color:#ff1744; border:1px solid #550000; }   /* Risk-Off */
-.tag-pan  { background:#2a0000; color:#ff0000; border:1px solid #880000; }   /* Panic */
-.tag-apc  { background:#1a0e00; color:#ffd54f; border:1px solid #553300; }   /* Apex Concentration */
-.tag-nar  { background:#161000; color:#ffd54f; border:1px solid #443300; }   /* Narrow */
+.tag-on   { background:#011f01; color:#00e676; border:1px solid #005500; }
+.tag-agg  { background:#002200; color:#00ff88; border:1px solid #007700; }
+.tag-euph { background:#001a00; color:#39ff14; border:1px solid #005500; }
+.tag-lean { background:#071a07; color:#66bb6a; border:1px solid #2e7d32; }
+.tag-neu  { background:#0a0e10; color:#90a4ae; border:1px solid #37474f; }
+.tag-def  { background:#1a1200; color:#ffb300; border:1px solid #664d00; }
+.tag-off  { background:#1f0101; color:#ff1744; border:1px solid #550000; }
+.tag-pan  { background:#2a0000; color:#ff0000; border:1px solid #880000; }
+.tag-apc  { background:#1a0e00; color:#ffd54f; border:1px solid #553300; }
+.tag-nar  { background:#161000; color:#ffd54f; border:1px solid #443300; }
 
-/* YIELDS — bigger, cleaner */
+/* YIELDS */
 .y-hd  { display:grid; grid-template-columns:1.4fr 1fr 0.8fr;
           font-size:9px; color:#ffffff; letter-spacing:1.5px; text-transform:uppercase;
           padding-bottom:8px; border-bottom:1px solid #1a1a1a; }
@@ -180,15 +171,38 @@ iframe { display:block; }
 /* COLOURS */
 .pos { color:#00e676 !important; } .neg { color:#ff1744 !important; }
 .acc { color:#00bcd4 !important; } .gld { color:#ffd54f !important; }
+.org { color:#ff6d00 !important; }
 .t0  { color:#ffffff !important; } .t1  { color:#c0c0c0 !important; }
 .t2  { color:#707070 !important; }
 
-/* BADGE (kept small for card headers) */
+/* BADGE */
 .mb     { display:inline-block; font-size:8px; font-weight:700; letter-spacing:2px;
           padding:2px 7px; border-radius:1px; text-transform:uppercase; }
 .mb-1d  { background:#061a06; color:#00e676; border:1px solid #0d3d0d; }
 .mb-1m  { background:#040f1a; color:#00bcd4; border:1px solid #0d2b3d; }
 .mb-ytd { background:#1a1204; color:#ffd54f; border:1px solid #3d2d0d; }
+
+/* FLASH ANIMATION — fires when value updates */
+@keyframes flash-pos {
+  0%   { color:#00e676; text-shadow:0 0 12px #00e676; }
+  100% { color:inherit; text-shadow:none; }
+}
+@keyframes flash-neg {
+  0%   { color:#ff1744; text-shadow:0 0 12px #ff1744; }
+  100% { color:inherit; text-shadow:none; }
+}
+.flash-pos { animation: flash-pos 1s ease-out forwards; }
+.flash-neg { animation: flash-neg 1s ease-out forwards; }
+
+/* NIGHT MODE */
+.night-screen {
+  position:fixed; top:0; left:0; width:100vw; height:100vh;
+  background:#000; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:8px;
+}
+.night-clock { font-size:120px; font-weight:700; color:#1a1a1a; letter-spacing:-4px; line-height:1; }
+.night-sub   { font-size:14px; color:#141414; letter-spacing:4px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -226,61 +240,94 @@ def badge(m):
     return f'<span class="mb {c}">{m}</span>'
 
 def get_session() -> str:
-    """
-    Return the current US market session:
-      "pre"    — weekday 4:00am–9:29am ET
-      "open"   — weekday 9:30am–3:59pm ET
-      "after"  — weekday 4:00pm–7:59pm ET
-      "closed" — nights, weekends
-    """
     tz  = pytz.timezone("America/New_York")
     now = datetime.now(tz)
     if now.weekday() >= 5:
         return "closed"
     t = now.hour * 60 + now.minute
-    if 4 * 60 <= t < 9 * 60 + 30:
-        return "pre"
-    if 9 * 60 + 30 <= t < 16 * 60:
-        return "open"
-    if 16 * 60 <= t < 20 * 60:
-        return "after"
+    if 4 * 60 <= t < 9 * 60 + 30:   return "pre"
+    if 9 * 60 + 30 <= t < 16 * 60:  return "open"
+    if 16 * 60 <= t < 20 * 60:      return "after"
     return "closed"
 
 def is_market_hours() -> bool:
-    """True only during regular NYSE trading hours Mon-Fri 9:30am-4:00pm ET."""
     return get_session() == "open"
 
 def in_reset_window() -> bool:
-    """True outside NYSE hours — weekend or weekday 4am-9:30am ET."""
     return not is_market_hours()
 
-def pct_1d_display(val, is_btc=False):
+def is_night_mode() -> bool:
     """
-    During reset window, return None for non-BTC so we can render
-    0.00% in white with no arrow. BTC is live 24/7.
+    Night mode: 7pm–7am daily.
+    Sunday exception: stay active until 10pm (Sunday market open),
+    then night mode 10pm Sun → 7am Mon.
     """
-    if not is_btc and in_reset_window():
-        return None   # None = reset state, rendered as white 0.00% / no arrow
-    return val
+    tz  = pytz.timezone("America/New_York")
+    now = datetime.now(tz)
+    h   = now.hour
+    dow = now.weekday()  # 0=Mon … 6=Sun
+    if dow == 6:  # Sunday
+        return h >= 22 or h < 7
+    return h >= 19 or h < 7
 
 def fmt_1d(val, is_btc=False):
-    """
-    Format a 1D change for display.
-    Reset window (non-BTC): white 0.00%, no arrow.
-    Normal: coloured with arrow.
-    Returns (colour_class, arrow_str, display_str)
-    """
     if not is_btc and in_reset_window():
         return "t0", "", "+0.00%"
     if val is None:
         return "t2", "", "—"
     return cl(val), ar(val), fpc(val)
 
+# Breaking news keyword filter
+BREAKING_KEYWORDS = [
+    "breaking","urgent","fed","federal reserve","rate","cpi","gdp","inflation",
+    "recession","crash","rally","surge","plunge","collapse","crisis","war",
+    "oil","crude","opec","earnings","beat","miss","layoff","bankruptcy",
+    "tariff","trade","sanction","default","yield","bond","treasury",
+    "powell","yellen","trump","biden","election","geopolit",
+    "jobs report","nonfarm","unemployment","fomc","hike","cut",
+    "s&p","nasdaq","dow jones","tsx","tsx composite",
+]
+
+def is_market_headline(title: str) -> bool:
+    t = title.lower()
+    return any(kw in t for kw in BREAKING_KEYWORDS)
+
+def price_colour(price, sma50, sma200, ath) -> str:
+    """
+    Cyan  = at/above all-time high
+    White = above 50DMA (normal uptrend)
+    Orange = below 50DMA but above 200DMA
+    Red   = below 200DMA
+    """
+    if price is None: return "#ffffff"
+    if ath and price >= ath * 0.995:  return "#00bcd4"   # cyan
+    if sma200 and price < sma200:      return "#ff1744"   # red
+    if sma50  and price < sma50:       return "#ff6d00"   # orange
+    return "#ffffff"                                       # white
+
 # =============================================================================
-# TICKER
+# NIGHT MODE CHECK — render immediately before anything else
 # =============================================================================
-@st.cache_data(ttl=300)
-def get_ticker_html():
+if is_night_mode():
+    tz       = pytz.timezone("America/New_York")
+    now_et   = datetime.now(tz)
+    time_str = now_et.strftime("%-I:%M")
+    ampm     = now_et.strftime("%p").lower()
+    st.markdown(
+        f'<div class="night-screen">'
+        f'<div class="night-clock">{time_str}</div>'
+        f'<div class="night-sub">{ampm} · new york</div>'
+        f'</div>',
+        unsafe_allow_html=True)
+    st.stop()   # Don't render anything else
+
+# =============================================================================
+# TICKER  — fragment so it refreshes every 5 min with everything else
+# =============================================================================
+@st.fragment(run_every=300)
+def ticker_bar():
+    # Clear the old cache key so fresh data is fetched
+    get_header_ticker_data.cache_clear() if hasattr(get_header_ticker_data, 'cache_clear') else None
     header = get_header_ticker_data() or []
     items  = []
     for h in header:
@@ -288,27 +335,23 @@ def get_ticker_html():
             items.append(f'<span class="td">{h["label"]}</span>')
         else:
             raw  = h.get("pct_1d")
-            # BTC tickers in header — check by label
             is_b = h["label"] in ("BTC-USD", "ETH-USD", "COIN", "MSTR")
-            val  = pct_1d_display(raw, is_btc=is_b)
-            c    = cl(val)
-            a    = ar(val)
+            c, a, d = fmt_1d(raw, is_btc=is_b)
             items.append(
                 f'<span class="ti">'
                 f'<span class="ti-s">{h["label"]}</span>'
                 f'<span class="ti-p">{fp(h.get("price"))}</span>'
-                f'<span class="ti-c {c}">{a}{fpc(val)}</span>'
+                f'<span class="ti-c {c}">{a}{d}</span>'
                 f'</span>')
     s = "".join(items)
-    return f'<div class="tkr-outer"><div class="tkr-track">{s}{s}</div></div>'
+    st.markdown(
+        f'<div class="tkr-outer"><div class="tkr-track">{s}{s}</div></div>',
+        unsafe_allow_html=True)
 
-st.markdown(get_ticker_html(), unsafe_allow_html=True)
+ticker_bar()
 
 # =============================================================================
-# AI SUMMARY
-# =============================================================================
-# =============================================================================
-# NEWS + AI SUMMARY BAR  — news refreshes every 15 min, summary every 60 min
+# NEWS BAR  — market-relevant headlines only, refreshes every 15 min
 # =============================================================================
 @st.fragment(run_every=900)
 def news_bar():
@@ -316,10 +359,15 @@ def news_bar():
     if not headlines:
         return
 
-    breaking = [h for h in headlines if h["breaking"]]
+    # Filter to market-relevant only
+    relevant = [h for h in headlines if is_market_headline(h["title"])]
+    if not relevant:
+        relevant = headlines[:1]  # fallback: show top story if nothing matches
+
+    breaking = [h for h in relevant if h["breaking"]]
+    quiet    = [h for h in relevant if not h["breaking"]]
 
     if breaking:
-        # Show the single most urgent breaking headline
         h       = breaking[0]
         age_str = f"{h['age_minutes']}m ago" if h['age_minutes'] < 60 else f"{h['age_minutes']//60}h ago"
         st.markdown(
@@ -335,9 +383,8 @@ def news_bar():
             f'{h["source"]} · {age_str}</span>'
             f'</div>',
             unsafe_allow_html=True)
-    else:
-        # Quiet — show most recent headline as a neutral context line
-        h       = headlines[0]
+    elif quiet:
+        h       = quiet[0]
         age_str = f"{h['age_minutes']}m ago" if h['age_minutes'] < 60 else f"{h['age_minutes']//60}h ago"
         st.markdown(
             f'<div style="background:#0a0a0a;border-top:2px solid #2a2a2a;'
@@ -354,6 +401,9 @@ def news_bar():
 
 news_bar()
 
+# =============================================================================
+# AI SUMMARY  — hourly
+# =============================================================================
 @st.fragment(run_every=3600)
 def summary_bar():
     summary = get_ai_market_summary()
@@ -377,7 +427,7 @@ def summary_bar():
 summary_bar()
 
 # =============================================================================
-# TOP ROW — indices + clock + market status  (every 60 s)
+# TOP ROW — indices + clock + status  (every 60 s for clock accuracy)
 # =============================================================================
 @st.fragment(run_every=60)
 def top_row():
@@ -402,26 +452,17 @@ def top_row():
             f'<div class="idx-px">${fp(d.get("price"))}</div>'
             f'</div>')
 
-    session  = get_session()
+    session = get_session()
     if session == "open":
-        mkt_cls  = "mkt-open"
-        mkt_stxt = "MARKET: OPEN"
-        mkt_col  = "pos"
+        mkt_cls, mkt_stxt, mkt_col = "mkt-open",   "MARKET: OPEN",   "pos"
     elif session == "pre":
-        mkt_cls  = "mkt-pre"
-        mkt_stxt = "PRE-MARKET"
-        mkt_col  = "gld"
+        mkt_cls, mkt_stxt, mkt_col = "mkt-pre",    "PRE-MARKET",     "gld"
     elif session == "after":
-        mkt_cls  = "mkt-after"
-        mkt_stxt = "AFTER HOURS"
-        mkt_col  = "gld"
+        mkt_cls, mkt_stxt, mkt_col = "mkt-after",  "AFTER HOURS",    "gld"
     else:
-        mkt_cls  = "mkt-closed"
-        mkt_stxt = "MARKET: CLOSED"
-        mkt_col  = "neg"
+        mkt_cls, mkt_stxt, mkt_col = "mkt-closed", "MARKET: CLOSED", "neg"
 
-    # Big readable mode bar
-    mode_cls = {"1D":"mode-1d","1M":"mode-1m","YTD":"mode-ytd"}[MODE]
+    mode_cls  = {"1D":"mode-1d","1M":"mode-1m","YTD":"mode-ytd"}[MODE]
     mode_desc = {"1D":"1 DAY","1M":"1 MONTH","YTD":"YEAR TO DATE"}[MODE]
 
     st.markdown(
@@ -433,19 +474,18 @@ def top_row():
         f'<div class="mkt-s {mkt_col}">{mkt_stxt}</div>'
         f'<div class="mkt-cd">{market.get("countdown","")}</div>'
         f'</div></div></div>'
-        # MODE BAR — large, coloured, impossible to miss
-        f'<div class="mode-bar" style="padding:10px 14px;">'
+        f'<div class="mode-bar" style="padding:7px 14px;">'
         f'<span class="mode-label">DISPLAY MODE</span>'
         f'<span class="{mode_cls}">{MODE}</span>'
-        f'<span style="font-size:13px;color:#505050;margin-left:4px;">'
-        f'— {mode_desc}</span>'
+        f'<span style="font-size:13px;color:#505050;margin-left:4px;">— {mode_desc}</span>'
         f'</div>',
         unsafe_allow_html=True)
 
 top_row()
 
 # =============================================================================
-# ROW 2 — MCI (never rotates) | PORTFOLIO (rotates with mode)
+# MAIN DATA FRAGMENT — everything syncs on 5-minute interval
+# MCI, Portfolio, Sectors, Risk, Breadth, Yields all refresh together
 # =============================================================================
 col_mci, col_port = st.columns([1, 3], gap="small")
 
@@ -462,14 +502,8 @@ with col_mci:
         gc     = ("#00e676" if score >= 75 else "#ffd54f" if score >= 55
                   else "#ff9800" if score >= 35 else "#ff1744")
 
-        # VIX vs 30DMA conditional colour
         diff = vc - vma
-        if diff < -1.0:
-            vix_col = "#00e676"   # more than 1pt below MA = calm / green
-        elif diff > 1.0:
-            vix_col = "#ff1744"   # more than 1pt above MA = elevated / red
-        else:
-            vix_col = "#ffffff"   # within 1pt = white
+        vix_col = "#00e676" if diff < -1.0 else "#ff1744" if diff > 1.0 else "#ffffff"
 
         fbars = "".join(
             f'<div class="fb-row">'
@@ -496,7 +530,7 @@ with col_mci:
     mci_panel()
 
 with col_port:
-    @st.fragment(run_every=60)
+    @st.fragment(run_every=300)
     def portfolio_panel():
         port   = get_portfolio_data() or {}
         MODE   = get_mode()
@@ -510,13 +544,11 @@ with col_port:
         alpha  = pf.get("alpha_bps")
         ret    = pf.get("return_ytd") if MODE == "YTD" else pf.get("return_1d")
 
-        raw_x  = xeqt.get(KEY)
-        raw_b  = btc.get(KEY)
+        raw_x = xeqt.get(KEY); raw_b = btc.get(KEY)
         if KEY == "pct_1d":
             xc, xa, xd = fmt_1d(raw_x, is_btc=False)
             bc, ba, bd = fmt_1d(raw_b, is_btc=True)
             if in_reset_window():
-                ret = None   # show as white 0.00% via fmt_1d
                 rc, ra, rd = "t0", "", "+0.00%"
             else:
                 rc, ra, rd = cl(ret), ar(ret), fpc(ret)
@@ -524,8 +556,32 @@ with col_port:
             xc, xa, xd = cl(raw_x), ar(raw_x), fpc(raw_x)
             bc, ba, bd = cl(raw_b), ar(raw_b), fpc(raw_b)
             rc, ra, rd = cl(ret), ar(ret), fpc(ret)
-        x_pct = raw_x  # keep for legacy compat
-        b_pct = raw_b
+
+        # ATH / DMA price colouring
+        xeqt_chart = get_chart_data(PORTFOLIO["XEQT"]["ticker"]) or {}
+        btc_chart  = get_chart_data(PORTFOLIO["BTC"]["ticker"])  or {}
+
+        def last_val(lst):
+            if not lst: return None
+            vals = [v for v in lst if v is not None]
+            return vals[-1] if vals else None
+
+        def ath_val(lst):
+            if not lst: return None
+            vals = [v for v in lst if v is not None]
+            return max(vals) if vals else None
+
+        xeqt_px    = xeqt.get("price")
+        xeqt_50    = last_val(xeqt_chart.get("sma50"))
+        xeqt_200   = last_val(xeqt_chart.get("sma200"))
+        xeqt_ath   = ath_val(xeqt_chart.get("closes"))
+        xeqt_pcol  = price_colour(xeqt_px, xeqt_50, xeqt_200, xeqt_ath)
+
+        btc_px     = btc.get("price")
+        btc_50     = last_val(btc_chart.get("sma50"))
+        btc_200    = last_val(btc_chart.get("sma200"))
+        btc_ath    = ath_val(btc_chart.get("closes"))
+        btc_pcol   = price_colour(btc_px, btc_50, btc_200, btc_ath)
 
         stats = (
             f'<div class="stats-row">'
@@ -546,14 +602,14 @@ with col_port:
             f'<div style="text-align:right;">Portfolio Return</div></div>'
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">XEQT</div>'
-            f'<div class="pt-px">{fp(xeqt.get("price"))}</div>'
+            f'<div class="pt-px" style="color:{xeqt_pcol};">{fp(xeqt_px)}</div>'
             f'<div class="pt-ch {xc}">{xa}{xd}</div>'
             f'<div style="text-align:right;">'
             f'<div class="pt-ret {rc}">{ra}{rd}</div>'
             f'<div class="pt-wt">BLENDED 80/20</div></div></div>'
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">BTC</div>'
-            f'<div class="pt-px">${fp(btc.get("price"),0)}</div>'
+            f'<div class="pt-px" style="color:{btc_pcol};">${fp(btc_px,0)}</div>'
             f'<div class="pt-ch {bc}">{ba}{bd}</div>'
             f'<div style="text-align:right;">'
             f'<div class="pt-wt" style="margin-top:18px;">20% WEIGHT · 24/7</div>'
@@ -566,13 +622,12 @@ with col_port:
             unsafe_allow_html=True)
     portfolio_panel()
 
-# =============================================================================
-# ROW 3 — SECTORS | RISK | BREADTH | YIELDS
-# =============================================================================
-st.markdown('<div style="height:2px;background:#1e1e1e;"></div>',
-            unsafe_allow_html=True)
+st.markdown('<div style="height:2px;background:#1e1e1e;"></div>', unsafe_allow_html=True)
 
-@st.fragment(run_every=60)
+# =============================================================================
+# BOTTOM ROW — all on 5-min sync
+# =============================================================================
+@st.fragment(run_every=300)
 def bottom_row():
     sectors = get_sectors_data() or {}
     risk    = get_risk_breadth() or {}
@@ -591,10 +646,8 @@ def bottom_row():
             rows = []
             for name, d in lst:
                 raw = d.get(KEY)
-                if KEY == "pct_1d":
-                    colour, arrow, display = fmt_1d(raw)
-                else:
-                    colour, arrow, display = cl(raw), ar(raw), fpc(raw)
+                colour, arrow, display = (fmt_1d(raw) if KEY == "pct_1d"
+                                          else (cl(raw), ar(raw), fpc(raw)))
                 rows.append(
                     f'<div class="sec-r">'
                     f'<span class="sec-n">{name}</span>'
@@ -613,16 +666,9 @@ def bottom_row():
     with c2:
         rr  = risk.get("risk_rotation_pct", 0) or 0
         rrl = risk.get("risk_label", "—")
-        tag = {
-            "Euphoric":      "tag-euph",
-            "Aggressive":    "tag-agg",
-            "Risk-On":       "tag-on",
-            "Risk-Leaning":  "tag-lean",
-            "Neutral":       "tag-neu",
-            "Defensive":     "tag-def",
-            "Risk-Off":      "tag-off",
-            "Panic":         "tag-pan",
-        }.get(rrl, "tag-neu")
+        tag = {"Euphoric":"tag-euph","Aggressive":"tag-agg","Risk-On":"tag-on",
+               "Risk-Leaning":"tag-lean","Neutral":"tag-neu","Defensive":"tag-def",
+               "Risk-Off":"tag-off","Panic":"tag-pan"}.get(rrl,"tag-neu")
         st.markdown(
             f'<div class="card" style="border-right:2px solid #1e1e1e;">'
             f'<div class="card-hdr" style="justify-content:center;">Risk Rotation</div>'
@@ -637,18 +683,11 @@ def bottom_row():
     with c3:
         br  = risk.get("breadth_ratio") or 0
         brl = risk.get("breadth_label", "—")
-        tag = {
-            "Maximum Breadth":      "tag-euph",
-            "Solid Breadth":        "tag-agg",
-            "Risk-On Rotation":     "tag-on",
-            "Healthy Participation":"tag-lean",
-            "Neutral Breadth":      "tag-neu",
-            "Broadening-Out":       "tag-lean",
-            "Thin Participation":   "tag-def",
-            "High Concentration":   "tag-nar",
-            "Severe Divergence":    "tag-off",
-            "Apex Concentration":   "tag-pan",
-        }.get(brl, "tag-neu")
+        tag = {"Maximum Breadth":"tag-euph","Solid Breadth":"tag-agg",
+               "Risk-On Rotation":"tag-on","Healthy Participation":"tag-lean",
+               "Neutral Breadth":"tag-neu","Broadening-Out":"tag-lean",
+               "Thin Participation":"tag-def","High Concentration":"tag-nar",
+               "Severe Divergence":"tag-off","Apex Concentration":"tag-pan"}.get(brl,"tag-neu")
         st.markdown(
             f'<div class="card" style="border-right:2px solid #1e1e1e;">'
             f'<div class="card-hdr" style="justify-content:center;">Breadth</div>'
@@ -675,8 +714,7 @@ def bottom_row():
         st.markdown(
             f'<div class="card">'
             f'<div class="card-hdr" style="justify-content:center;">Treasury Yields</div>'
-            f'<div class="y-hd">'
-            f'<div>TENOR</div>'
+            f'<div class="y-hd"><div>TENOR</div>'
             f'<div style="text-align:center;">RATE</div>'
             f'<div style="text-align:right;">CHG</div></div>'
             f'{y_rows}</div>',
