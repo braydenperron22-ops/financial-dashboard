@@ -1050,3 +1050,108 @@ def get_market_news() -> List[Dict[str, Any]]:
         return items[:15]
 
     return fetch_with_cache(key, _fetch, ttl=900) or []
+
+
+# =============================================================================
+# SECTION 19 — MARKET HOLIDAY DETECTION
+# =============================================================================
+
+def _easter(year: int) -> date:
+    """Anonymous Gregorian algorithm for Easter Sunday."""
+    a = year % 19
+    b, c = divmod(year, 100)
+    d, e = divmod(b, 4)
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19*a + b - d - g + 15) % 30
+    i, k = divmod(c, 4)
+    l = (32 + 2*e + 2*i - h - k) % 7
+    m = (a + 11*h + 22*l) // 451
+    month, day = divmod(h + l - 7*m + 114, 31)
+    return date(year, month, day + 1)
+
+def _nth_weekday(year: int, month: int, weekday: int, n: int) -> date:
+    """Return the nth occurrence of weekday (0=Mon) in given month/year."""
+    d = date(year, month, 1)
+    first = (weekday - d.weekday()) % 7
+    return date(year, month, 1 + first + (n-1)*7)
+
+def _last_weekday(year: int, month: int, weekday: int) -> date:
+    """Return the last occurrence of weekday in given month/year."""
+    import calendar
+    last_day = calendar.monthrange(year, month)[1]
+    d = date(year, month, last_day)
+    diff = (d.weekday() - weekday) % 7
+    return date(year, month, last_day - diff)
+
+def _nearest_weekday(d: date) -> date:
+    """If holiday falls on weekend, observe on nearest weekday."""
+    if d.weekday() == 5: return date(d.year, d.month, d.day - 1)  # Sat → Fri
+    if d.weekday() == 6: return date(d.year, d.month, d.day + 1)  # Sun → Mon
+    return d
+
+def get_us_holidays(year: int) -> set:
+    """
+    NYSE market holidays for a given year.
+    Returns a set of date objects.
+    """
+    easter = _easter(year)
+    good_friday = date(easter.year, easter.month, easter.day)
+    from datetime import timedelta
+    good_friday = easter - timedelta(days=2)
+
+    holidays = {
+        _nearest_weekday(date(year, 1,  1)),   # New Year's Day
+        _nth_weekday(year, 1, 0, 3),            # MLK Day (3rd Mon Jan)
+        _nth_weekday(year, 2, 0, 3),            # Presidents Day (3rd Mon Feb)
+        good_friday,                             # Good Friday
+        _last_weekday(year, 5, 0),              # Memorial Day (last Mon May)
+        _nearest_weekday(date(year, 6, 19)),    # Juneteenth
+        _nearest_weekday(date(year, 7,  4)),    # Independence Day
+        _nth_weekday(year, 9, 0, 1),            # Labor Day (1st Mon Sep)
+        _nth_weekday(year, 11, 3, 4),           # Thanksgiving (4th Thu Nov)
+        _nearest_weekday(date(year, 12, 25)),   # Christmas
+    }
+    return holidays
+
+def get_tsx_holidays(year: int) -> set:
+    """
+    TSX market holidays for a given year.
+    Returns a set of date objects.
+    """
+    easter = _easter(year)
+    from datetime import timedelta
+    good_friday  = easter - timedelta(days=2)
+    easter_monday = easter + timedelta(days=1)
+
+    # Victoria Day = Monday before May 25
+    may25 = date(year, 5, 25)
+    vic_day = may25 - timedelta(days=(may25.weekday() + 1) % 7 or 7)
+
+    holidays = {
+        _nearest_weekday(date(year, 1,  1)),   # New Year's Day
+        good_friday,                             # Good Friday
+        easter_monday,                           # Easter Monday
+        vic_day,                                 # Victoria Day
+        _nearest_weekday(date(year, 7,  1)),    # Canada Day
+        _nth_weekday(year, 8, 0, 1),            # Civic Holiday (1st Mon Aug)
+        _nth_weekday(year, 9, 0, 1),            # Labour Day (1st Mon Sep)
+        _nth_weekday(year, 10, 0, 2),           # Thanksgiving (2nd Mon Oct)
+        _nearest_weekday(date(year, 12, 25)),   # Christmas
+        _nearest_weekday(date(year, 12, 26)),   # Boxing Day
+    }
+    return holidays
+
+def is_us_holiday(check_date: date = None) -> bool:
+    """True if the given date (default today ET) is a US market holiday."""
+    if check_date is None:
+        tz = pytz.timezone("America/New_York")
+        check_date = datetime.now(tz).date()
+    return check_date in get_us_holidays(check_date.year)
+
+def is_tsx_holiday(check_date: date = None) -> bool:
+    """True if the given date (default today ET) is a TSX market holiday."""
+    if check_date is None:
+        tz = pytz.timezone("America/New_York")
+        check_date = datetime.now(tz).date()
+    return check_date in get_tsx_holidays(check_date.year)

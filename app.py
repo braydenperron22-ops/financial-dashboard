@@ -13,6 +13,7 @@ from data.fetcher import (
     get_risk_breadth, get_sectors_data, get_treasury_yields,
     get_volatility_data, get_ai_market_summary, get_market_news,
     get_chart_data, prefetch_all,
+    is_us_holiday, is_tsx_holiday,
 )
 
 st.set_page_config(page_title="MARKET TERMINAL", layout="wide",
@@ -270,6 +271,33 @@ def is_night_mode() -> bool:
         return h >= 22 or h < 7
     return h >= 19 or h < 7
 
+def get_holiday_state(asset_type: str = "us") -> str:
+    """
+    Returns "us_holiday", "tsx_holiday", or "" (no holiday).
+    asset_type: "us" for US indices/sectors/yields, "tsx" for TSX, "btc" for crypto.
+    BTC and crypto never have holidays.
+    """
+    if asset_type == "btc":
+        return ""
+    if asset_type == "tsx":
+        return "tsx_holiday" if is_tsx_holiday() else ""
+    # Default US
+    return "us_holiday" if is_us_holiday() else ""
+
+def fmt_1d_with_holiday(val, asset_type: str = "us"):
+    """
+    Like fmt_1d but also applies holiday zero-out for the correct exchange.
+    Returns (colour_class, arrow_str, display_str, is_holiday_bool)
+    """
+    holiday = get_holiday_state(asset_type)
+    if holiday:
+        return "t0", "", "+0.00%", True
+    if asset_type != "btc" and in_reset_window():
+        return "t0", "", "+0.00%", False
+    if val is None:
+        return "t2", "", "—", False
+    return cl(val), ar(val), fpc(val), False
+
 def fmt_1d(val, is_btc=False):
     if not is_btc and in_reset_window():
         return "t0", "", "+0.00%"
@@ -438,18 +466,27 @@ def top_row():
     now_et  = datetime.now(pytz.timezone("America/New_York"))
     time_str = now_et.strftime("%-I:%M %p").lower()
 
+    # Determine holiday state once for the whole indices row
+    us_hol  = get_holiday_state("us")
+    tsx_hol = get_holiday_state("tsx")
+
     idx_cells = ""
     for name, d in indices.items():
         raw = d.get(KEY)
+        # TSX uses Canadian calendar; everything else uses US
+        atype = "tsx" if name == "TSX" else "us"
+        hol   = tsx_hol if atype == "tsx" else us_hol
         if KEY == "pct_1d":
-            colour, arrow, display = fmt_1d(raw)
+            colour, arrow, display, is_hol = fmt_1d_with_holiday(raw, atype)
         else:
-            colour, arrow, display = cl(raw), ar(raw), fpc(raw, 2)
+            colour, arrow, display, is_hol = cl(raw), ar(raw), fpc(raw, 2), False
+        sub = "Holiday" if is_hol else f"${fp(d.get('price'))}"
+        sub_style = "color:#505050;" if is_hol else "color:#c8c8c8;"
         idx_cells += (
             f'<div class="idx-cell">'
             f'<div class="idx-lbl">{name}</div>'
             f'<div class="idx-pct {colour}">{arrow}{display}</div>'
-            f'<div class="idx-px">${fp(d.get("price"))}</div>'
+            f'<div class="idx-px" style="{sub_style}">{sub}</div>'
             f'</div>')
 
     session = get_session()
@@ -546,9 +583,10 @@ with col_port:
 
         raw_x = xeqt.get(KEY); raw_b = btc.get(KEY)
         if KEY == "pct_1d":
-            xc, xa, xd = fmt_1d(raw_x, is_btc=False)
-            bc, ba, bd = fmt_1d(raw_b, is_btc=True)
-            if in_reset_window():
+            # XEQT.TO = TSX; BTC = always live; blended return = US holiday if XEQT is holiday
+            xc, xa, xd, x_hol = fmt_1d_with_holiday(raw_x, "tsx")
+            bc, ba, bd, _      = fmt_1d_with_holiday(raw_b, "btc")
+            if x_hol or in_reset_window():
                 rc, ra, rd = "t0", "", "+0.00%"
             else:
                 rc, ra, rd = cl(ret), ar(ret), fpc(ret)
@@ -556,6 +594,7 @@ with col_port:
             xc, xa, xd = cl(raw_x), ar(raw_x), fpc(raw_x)
             bc, ba, bd = cl(raw_b), ar(raw_b), fpc(raw_b)
             rc, ra, rd = cl(ret), ar(ret), fpc(ret)
+            x_hol = False
 
         # ATH / DMA price colouring
         xeqt_chart = get_chart_data(PORTFOLIO["XEQT"]["ticker"]) or {}
@@ -606,7 +645,7 @@ with col_port:
             f'<div class="pt-ch {xc}">{xa}{xd}</div>'
             f'<div style="text-align:right;">'
             f'<div class="pt-ret {rc}">{ra}{rd}</div>'
-            f'<div class="pt-wt">BLENDED 80/20</div></div></div>'
+            f'<div class="pt-wt">{"TSX HOLIDAY" if x_hol else "BLENDED 80/20"}</div></div></div>'
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">BTC</div>'
             f'<div class="pt-px" style="color:{btc_pcol};">${fp(btc_px,0)}</div>'
@@ -646,8 +685,12 @@ def bottom_row():
             rows = []
             for name, d in lst:
                 raw = d.get(KEY)
-                colour, arrow, display = (fmt_1d(raw) if KEY == "pct_1d"
-                                          else (cl(raw), ar(raw), fpc(raw)))
+                # Metals (GDX) trades US hours; others use their exchange
+                sec_atype = "us"  # all sectors are US ETFs
+                if KEY == "pct_1d":
+                    colour, arrow, display, _ = fmt_1d_with_holiday(raw, sec_atype)
+                else:
+                    colour, arrow, display = cl(raw), ar(raw), fpc(raw)
                 rows.append(
                     f'<div class="sec-r">'
                     f'<span class="sec-n">{name}</span>'
