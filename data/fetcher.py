@@ -336,12 +336,19 @@ def get_sectors_data() -> Dict[str, Dict[str, Any]]:
             series = df[ticker].dropna()
             if series.empty:
                 continue
+            price   = float(series.iloc[-1])
+            sma50   = float(series.rolling(50).mean().iloc[-1])  if len(series) >= 50  else None
+            sma200  = float(series.rolling(200).mean().iloc[-1]) if len(series) >= 200 else None
+            ath     = float(series.max())
             result[label] = {
                 "ticker":   ticker,
-                "price":    round(float(series.iloc[-1]), 2),
+                "price":    round(price, 2),
                 "pct_1d":   round(_calc_period_return(series, 1)  or 0, 2),
                 "pct_1m":   round(_calc_period_return(series, 30) or 0, 2),
                 "pct_ytd":  round(_calc_ytd_return(series)        or 0, 2),
+                "sma50":    round(sma50,  2) if sma50  else None,
+                "sma200":   round(sma200, 2) if sma200 else None,
+                "ath":      round(ath, 2),
             }
         return result
 
@@ -398,13 +405,12 @@ def get_portfolio_data() -> Dict[str, Any]:
             for name, cfg in PORTFOLIO.items()
         )
 
-        # --- Beta & Correlation vs SPY (using daily returns, ~252 trading days) ---
-        beta = correlation = alpha_bps = None
+        # --- Beta vs SPY + Alpha ---
+        beta = alpha_bps = None
         if BENCHMARK_TICKER in df.columns:
             spy_series  = df[BENCHMARK_TICKER].dropna()
             spy_returns = spy_series.pct_change().dropna()
 
-            # Build a daily series for the blended portfolio
             blended_returns = None
             for name, cfg in PORTFOLIO.items():
                 ticker = cfg["ticker"]
@@ -413,25 +419,33 @@ def get_portfolio_data() -> Dict[str, Any]:
                     blended_returns = asset_ret if blended_returns is None else blended_returns.add(asset_ret, fill_value=0)
 
             if blended_returns is not None:
-                # Align the two series on their common dates
                 combined = pd.concat([blended_returns, spy_returns], axis=1).dropna()
                 combined.columns = ["portfolio", "spy"]
                 if len(combined) >= 30:
                     cov_matrix = np.cov(combined["portfolio"], combined["spy"])
                     spy_var    = np.var(combined["spy"])
                     beta       = round(cov_matrix[0, 1] / spy_var, 3) if spy_var else None
-                    correlation = round(combined["portfolio"].corr(combined["spy"]), 3)
 
-            # Alpha = portfolio YTD − SPY YTD, expressed in basis points (×100)
-            spy_ytd = _calc_ytd_return(spy_series) or 0
+            spy_ytd   = _calc_ytd_return(spy_series) or 0
             alpha_bps = round((blended_ytd - spy_ytd) * 100, 1)
 
+        # --- BTC vs XEQT correlation (#10) ---
+        xeqt_ticker = PORTFOLIO.get("XEQT", {}).get("ticker", "XEQT.TO")
+        btc_ticker  = PORTFOLIO.get("BTC",  {}).get("ticker", "BTC-USD")
+        btc_xeqt_corr = None
+        if xeqt_ticker in df.columns and btc_ticker in df.columns:
+            xeqt_ret = df[xeqt_ticker].dropna().pct_change().dropna()
+            btc_ret  = df[btc_ticker].dropna().pct_change().dropna()
+            paired   = pd.concat([xeqt_ret, btc_ret], axis=1).dropna()
+            if len(paired) >= 30:
+                btc_xeqt_corr = round(paired.iloc[:,0].corr(paired.iloc[:,1]), 3)
+
         result["portfolio"] = {
-            "return_ytd":  round(blended_ytd, 2),
-            "return_1d":   round(blended_1d, 2),
-            "beta":        beta,
-            "correlation": correlation,
-            "alpha_bps":   alpha_bps,
+            "return_ytd":      round(blended_ytd, 2),
+            "return_1d":       round(blended_1d, 2),
+            "beta":            beta,
+            "btc_xeqt_corr":   btc_xeqt_corr,   # BTC vs XEQT
+            "alpha_bps":       alpha_bps,
         }
 
         return result
@@ -566,14 +580,16 @@ def get_market_confidence_index() -> Dict[str, Any]:
         score_vix30 = _mci_formula(vix_ma)
         score       = round((score_vix + score_vix30) / 2.0, 1)
 
-        if score >= 75:
-            label = "Confident"
-        elif score >= 55:
-            label = "Neutral"
-        elif score >= 35:
-            label = "Cautious"
-        else:
-            label = "Fearful"
+        # 9-level IFS scale (#14)
+        if score >= 90:   label = "Euphoria"
+        elif score >= 80: label = "Very Confident"
+        elif score >= 70: label = "Confident"
+        elif score >= 60: label = "Cautious"
+        elif score >= 50: label = "Neutral"
+        elif score >= 40: label = "Defensive"
+        elif score >= 30: label = "Concerned"
+        elif score >= 20: label = "Fear"
+        else:             label = "Panic"
 
         return {
             "score": score,
