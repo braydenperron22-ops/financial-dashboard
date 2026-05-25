@@ -25,8 +25,13 @@ st.markdown("""
 #MainMenu,footer,header,[data-testid="stToolbar"],
 [data-testid="stHeader"],.stDeployButton { display:none !important; }
 
-.stApp { background:#060606 !important; padding-top:0 !important; }
-.main .block-container { padding:0 !important; max-width:100% !important; }
+.stApp { background:#060606 !important; padding-top:0 !important; margin-top:0 !important; }
+.main .block-container { padding:0 !important; max-width:100% !important; margin-top:0 !important; }
+.stApp > div { padding-top:0 !important; margin-top:0 !important; }
+section.main > div { padding-top:0 !important; }
+div[data-testid="stAppViewContainer"] { padding-top:0 !important; margin-top:0 !important; }
+div[data-testid="stAppViewBlockContainer"] { padding-top:0 !important; margin-top:0 !important; }
+div[data-testid="block-container"] { padding-top:0 !important; margin-top:0 !important; }
 [data-testid="stHorizontalBlock"] { gap:0 !important; padding:0 !important; }
 [data-testid="column"]>div        { padding:0 !important; }
 [data-testid="stVerticalBlock"]   { gap:0 !important; }
