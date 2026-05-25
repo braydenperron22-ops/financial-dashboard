@@ -808,73 +808,105 @@ def prefetch_all() -> None:
 
 
 # =============================================================================
-# SECTION 17 — MARKET NEWS
+# SECTION 17 — AI MARKET SUMMARY
 # =============================================================================
 
-def get_market_news() -> List[Dict[str, Any]]:
+def get_ai_market_summary() -> str:
     """
-    Fetch financial headlines from free public RSS feeds via feedparser.
+    Ask Llama 3 (via Groq free tier) to write a 1-2 sentence market summary,
+    grounded in live data we already have (indices, VIX, MCI, risk/breadth).
 
-    Sources (tried in order, results merged and deduplicated):
-      1. Yahoo Finance top stories
-      2. MarketWatch top stories
-      3. Reuters business news
-      4. CNBC markets
-
-    Each item returned:
-        title       : str  — headline
-        source      : str  — feed name
-        age_minutes : int  — minutes since publication
-        breaking    : bool — True if published within the last 90 minutes
-
-    Cached for 60 minutes so we never hammer the feeds.
+    Requires GROQ_API_KEY in Streamlit secrets or as an environment variable.
+    Returns empty string silently if key is missing.
+    Cached for 60 minutes — one free API call per hour.
     """
-    key = "market_news_rss"
+    key = "ai_market_summary"
+
+    def _get_api_key() -> str:
+        try:
+            import streamlit as _st
+            k = _st.secrets.get("GROQ_API_KEY", "")
+            if k:
+                return k
+        except Exception:
+            pass
+        import os
+        return os.environ.get("GROQ_API_KEY", "")
 
     def _fetch():
-        import feedparser
-        import time as _time
+        api_key = _get_api_key()
+        if not api_key:
+            logger.info("No GROQ_API_KEY set — skipping AI summary")
+            return ""
 
-        FEEDS = [
-            ("Yahoo Finance",  "https://finance.yahoo.com/news/rssindex"),
-            ("MarketWatch",    "https://feeds.content.dowjones.io/public/rss/mw_topstories"),
-            ("Reuters",        "https://feeds.reuters.com/reuters/businessNews"),
-            ("CNBC",           "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114"),
-        ]
+        try:
+            import requests as _req
 
-        now_ts = _time.time()
-        seen   = set()
-        items  = []
+            vol  = get_volatility_data()         or {}
+            mci  = get_market_confidence_index() or {}
+            idx  = get_indices_data()            or {}
+            risk = get_risk_breadth()            or {}
 
-        for source_name, url in FEEDS:
-            try:
-                feed = feedparser.parse(url)
-                for entry in feed.entries[:8]:
-                    title = (entry.get("title") or "").strip()
-                    if not title or title in seen:
-                        continue
-                    seen.add(title)
+            sp        = idx.get("S&P 500", {})
+            nq        = idx.get("NASDAQ",  {})
+            tsx       = idx.get("TSX",     {})
+            vix       = vol.get("vix_current", 0)
+            mci_score = mci.get("score", 0)
+            mci_label = mci.get("label", "")
+            rrl       = risk.get("risk_label", "")
+            brl       = risk.get("breadth_label", "")
 
-                    # Parse publish time — feedparser normalises to time.struct_time
-                    pub = entry.get("published_parsed") or entry.get("updated_parsed")
-                    if pub:
-                        import calendar
-                        pub_ts = float(calendar.timegm(pub))
-                    else:
-                        pub_ts = now_ts
+            tz_et  = pytz.timezone("America/New_York")
+            now_et = datetime.now(tz_et)
 
-                    age_minutes = max(0, int((now_ts - pub_ts) / 60))
+            context = (
+                f"Live market data as of {now_et.strftime('%B %d, %Y %I:%M %p ET')}: "
+                f"S&P 500 {fp(sp.get('price'))} ({fpc(sp.get('pct_1d'))} today, "
+                f"{fpc(sp.get('pct_ytd'))} YTD). "
+                f"NASDAQ {fpc(nq.get('pct_1d'))} today. "
+                f"TSX {fpc(tsx.get('pct_1d'))} today. "
+                f"VIX {vix:.1f}. "
+                f"Market Confidence Index {mci_score:.0f}/100 ({mci_label}). "
+                f"Risk rotation: {rrl}. Market breadth: {brl}."
+            )
 
-                    items.append({
-                        "title":       title,
-                        "source":      source_name,
-                        "age_minutes": age_minutes,
-                        "breaking":    age_minutes <= 90,
-                    })
-            except Exception as exc:
-                logger.warning("RSS fetch failed for %s: %s", source_name, exc)
+            prompt = (
+                context + " "
+                "Write exactly 1-2 sentences summarising current market conditions "
+                "for a professional investor. Be specific with the numbers, note any "
+                "key themes or divergences, and keep it sharp. "
+                "No preamble or sign-off — just the summary."
+            )
 
-        items.sort(key=lambda x: x["age_minutes"])
-        return items[:14]
+            resp = _req.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type":  "application/json",
+                },
+                json={
+                    "model":       "llama-3.3-70b-versatile",
+                    "max_tokens":  120,
+                    "temperature": 0.4,
+                    "messages": [
+                        {"role": "system",
+                         "content": "You are a concise financial markets analyst. "
+                                    "Respond only with the requested summary, no extra text."},
+                        {"role": "user", "content": prompt},
+                    ],
+                },
+                timeout=15,
+            )
 
-    return fetch_with_cache(key, _fetch, ttl=3600) or []
+            if resp.status_code == 200:
+                return resp.json()["choices"][0]["message"]["content"].strip()
+            else:
+                logger.warning("Groq API error %s: %s",
+                               resp.status_code, resp.text[:200])
+
+        except Exception as exc:
+            logger.warning("AI summary failed: %s", exc)
+
+        return ""
+
+    return fetch_with_cache(key, _fetch, ttl=3600) or ""
