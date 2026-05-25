@@ -539,92 +539,33 @@ def get_volatility_data() -> Dict[str, Any]:
 
 def get_market_confidence_index() -> Dict[str, Any]:
     """
-    Compute a 0–100 composite market confidence score from four factors:
+    Market Confidence Index — formula matches Google Sheets original:
 
-    1. VIX Regime        (40% weight)
-       Score = max(0, min(100, 100 − (VIX / 0.5)))
-       A VIX of 12 → score ~76; VIX of 30 → score ~40; VIX of 50 → score 0
+        score_vix     = MAX(0, MIN(99, 100 * EXP(-0.08 * (VIX     - 14))))
+        score_vix30   = MAX(0, MIN(99, 100 * EXP(-0.08 * (VIX30   - 14))))
+        MCI           = (score_vix + score_vix30) / 2
 
-    2. Risk Rotation      (25% weight)
-       1-month return of HYG minus 1-month return of IEF.
-       Positive spread = credit markets rallying = risk-on.
-
-    3. Breadth            (20% weight)
-       RSP (equal-weight) / SPY (cap-weight) ratio vs its own 30DMA.
-       Equal-weight outperforming = broad participation = healthy market.
-
-    4. Trend Strength     (15% weight)
-       SPY closing price vs its 200DMA. Above = 100, Below = 0.
-
-    Returns
-    -------
-    dict with keys:
-        score        : float  (0–100)
-        label        : str    e.g. "Confident", "Cautious", "Fearful"
-        factors      : dict   per-factor scores (for a breakdown tooltip)
+    Interpretation:
+        VIX = 14  → score = 100  (calm, at the "normal" floor)
+        VIX = 20  → score ~  62
+        VIX = 30  → score ~  24
+        VIX = 45  → score ~   6  (near zero — extreme fear)
     """
     key = "mci_data"
 
+    def _mci_formula(vix_val: float) -> float:
+        import math
+        return max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix_val - 14.0))))
+
     def _fetch():
-        vol      = get_volatility_data()
-        vix      = vol.get("vix_current", 20) if vol else 20
-        vix_ma   = vol.get("vix_30dma",   20) if vol else 20
+        vol    = get_volatility_data()
+        vix    = vol.get("vix_current", 20.0) if vol else 20.0
+        vix_ma = vol.get("vix_30dma",   20.0) if vol else 20.0
 
-        # Factor 1 — VIX regime
-        vix_score = max(0.0, min(100.0, 100.0 - (vix / 0.5)))
+        score_vix   = _mci_formula(vix)
+        score_vix30 = _mci_formula(vix_ma)
+        score       = round((score_vix + score_vix30) / 2.0, 1)
 
-        # Factor 2 — Risk rotation (HYG vs IEF 1-month)
-        risk_rot_score = 50.0  # neutral default
-        try:
-            tickers_rr = [HYG_TICKER, IEF_TICKER]
-            df_rr = _download_multi(tickers_rr, period="3mo")
-            if HYG_TICKER in df_rr.columns and IEF_TICKER in df_rr.columns:
-                hyg_ret = _calc_period_return(df_rr[HYG_TICKER].dropna(), 30) or 0
-                ief_ret = _calc_period_return(df_rr[IEF_TICKER].dropna(), 30) or 0
-                spread  = hyg_ret - ief_ret  # positive = risk-on
-                # Map spread from ~[-3, +3] to [0, 100]
-                risk_rot_score = max(0.0, min(100.0, 50.0 + spread * 16.67))
-        except Exception as e:
-            logger.warning("Risk rotation calc failed: %s", e)
-
-        # Factor 3 — Breadth (RSP vs SPY ratio trend)
-        breadth_score = 50.0
-        try:
-            tickers_b = [RSP_TICKER, SPY_TICKER]
-            df_b = _download_multi(tickers_b, period="3mo")
-            if RSP_TICKER in df_b.columns and SPY_TICKER in df_b.columns:
-                ratio     = df_b[RSP_TICKER].dropna() / df_b[SPY_TICKER].dropna()
-                ratio_ma  = ratio.rolling(30).mean()
-                last_r    = float(ratio.iloc[-1])
-                last_ma   = float(ratio_ma.iloc[-1])
-                # Above MA = broad breadth = positive
-                deviation = (last_r - last_ma) / last_ma * 100
-                breadth_score = max(0.0, min(100.0, 50.0 + deviation * 5))
-        except Exception as e:
-            logger.warning("Breadth calc failed: %s", e)
-
-        # Factor 4 — Trend strength (SPY vs 200DMA)
-        trend_score = 50.0
-        try:
-            df_spy = _download_history(SPY_TICKER, period="1y")
-            if not df_spy.empty:
-                spy_close  = df_spy["Close"].dropna()
-                spy_200dma = spy_close.rolling(200).mean().iloc[-1]
-                trend_score = 100.0 if float(spy_close.iloc[-1]) >= float(spy_200dma) else 0.0
-        except Exception as e:
-            logger.warning("Trend strength calc failed: %s", e)
-
-        # Weighted composite
-        w = MCI_WEIGHTS
-        score = (
-            vix_score      * w["vix_regime"]
-            + risk_rot_score * w["risk_rotation"]
-            + breadth_score  * w["breadth"]
-            + trend_score    * w["trend_strength"]
-        )
-        score = round(score, 1)
-
-        # Label
         if score >= 75:
             label = "Confident"
         elif score >= 55:
@@ -638,10 +579,8 @@ def get_market_confidence_index() -> Dict[str, Any]:
             "score": score,
             "label": label,
             "factors": {
-                "vix_regime":    round(vix_score, 1),
-                "risk_rotation": round(risk_rot_score, 1),
-                "breadth":       round(breadth_score, 1),
-                "trend_strength":round(trend_score, 1),
+                "VIX Score":     round(score_vix,   1),
+                "VIX 30DMA Score": round(score_vix30, 1),
             },
         }
 
@@ -866,3 +805,76 @@ def prefetch_all() -> None:
     for name, cfg in PORTFOLIO.items():
         get_chart_data(cfg["ticker"])
     logger.info("Prefetch complete.")
+
+
+# =============================================================================
+# SECTION 17 — MARKET NEWS
+# =============================================================================
+
+def get_market_news() -> List[Dict[str, Any]]:
+    """
+    Fetch financial headlines from free public RSS feeds via feedparser.
+
+    Sources (tried in order, results merged and deduplicated):
+      1. Yahoo Finance top stories
+      2. MarketWatch top stories
+      3. Reuters business news
+      4. CNBC markets
+
+    Each item returned:
+        title       : str  — headline
+        source      : str  — feed name
+        age_minutes : int  — minutes since publication
+        breaking    : bool — True if published within the last 90 minutes
+
+    Cached for 60 minutes so we never hammer the feeds.
+    """
+    key = "market_news_rss"
+
+    def _fetch():
+        import feedparser
+        import time as _time
+
+        FEEDS = [
+            ("Yahoo Finance",  "https://finance.yahoo.com/news/rssindex"),
+            ("MarketWatch",    "https://feeds.content.dowjones.io/public/rss/mw_topstories"),
+            ("Reuters",        "https://feeds.reuters.com/reuters/businessNews"),
+            ("CNBC",           "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114"),
+        ]
+
+        now_ts = _time.time()
+        seen   = set()
+        items  = []
+
+        for source_name, url in FEEDS:
+            try:
+                feed = feedparser.parse(url)
+                for entry in feed.entries[:8]:
+                    title = (entry.get("title") or "").strip()
+                    if not title or title in seen:
+                        continue
+                    seen.add(title)
+
+                    # Parse publish time — feedparser normalises to time.struct_time
+                    pub = entry.get("published_parsed") or entry.get("updated_parsed")
+                    if pub:
+                        import calendar
+                        pub_ts = float(calendar.timegm(pub))
+                    else:
+                        pub_ts = now_ts
+
+                    age_minutes = max(0, int((now_ts - pub_ts) / 60))
+
+                    items.append({
+                        "title":       title,
+                        "source":      source_name,
+                        "age_minutes": age_minutes,
+                        "breaking":    age_minutes <= 90,
+                    })
+            except Exception as exc:
+                logger.warning("RSS fetch failed for %s: %s", source_name, exc)
+
+        items.sort(key=lambda x: x["age_minutes"])
+        return items[:14]
+
+    return fetch_with_cache(key, _fetch, ttl=3600) or []
