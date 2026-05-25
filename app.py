@@ -39,7 +39,7 @@ st.markdown("""
 .tkr-outer {
   width:100vw; position:relative; left:50%; transform:translateX(-50%);
   overflow:hidden; background:#000;
-  border-top:2px solid #00e676; border-bottom:2px solid #00e676; padding:9px 0;
+  border-top:2px solid #00e676; border-bottom:3px solid #1e1e1e; padding:10px 0;
 }
 .tkr-track { display:inline-block; white-space:nowrap; animation:tkr 240s linear infinite; }
 .tkr-track:hover { animation-play-state:paused; }
@@ -53,35 +53,37 @@ st.markdown("""
         border-radius:1px; font-weight:700; vertical-align:middle; }
 
 /* CARD */
-.card     { background:#090909; border:1px solid #1e1e1e; padding:14px 16px; height:100%; }
+.card     { background:#090909; border:1px solid #1e1e1e; padding:18px 18px; height:100%; }
 .card-hdr { font-size:10px; font-weight:700; letter-spacing:2.5px; color:#ffffff;
             text-transform:uppercase; padding-bottom:9px; margin-bottom:11px;
             border-bottom:1px solid #1a1a1a; display:flex;
             justify-content:space-between; align-items:center; }
 
 /* INDICES ROW */
-.idx-row  { display:flex; width:100%; background:#090909; border-bottom:2px solid #1e1e1e; }
-.idx-cell { flex:1; padding:12px 10px; text-align:center; border-right:1px solid #1e1e1e; }
+.idx-row  { display:flex; width:100%; background:#090909; border-top:2px solid #303030; border-bottom:2px solid #1e1e1e; }
+.idx-cell { flex:1; padding:16px 10px; text-align:center; border-right:1px solid #1e1e1e; }
 .idx-cell:last-of-type { border-right:none; }
 .idx-lbl  { font-size:9px; color:#ffffff; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
 .idx-pct  { font-size:30px; font-weight:800; line-height:1; }
 .idx-px   { font-size:12px; color:#c8c8c8; margin-top:6px; }
-.clock-cell { width:190px; flex-shrink:0; padding:12px 14px; display:flex;
+.clock-cell { width:190px; flex-shrink:0; padding:16px 14px; display:flex;
   flex-direction:column; justify-content:center; align-items:center;
   border-left:2px solid #1e1e1e; background:#090909; }
 .clock-time { font-size:38px; font-weight:800; color:#fff; line-height:1; text-align:center; }
 .clock-sub  { font-size:9px; color:#d0d0d0; letter-spacing:2px; margin-top:5px; }
-.mkt-cell { width:210px; flex-shrink:0; padding:12px 14px; display:flex;
+.mkt-cell { width:210px; flex-shrink:0; padding:16px 14px; display:flex;
   align-items:center; justify-content:center;
   border-left:2px solid #1e1e1e; background:#090909; }
-.mkt-open   { background:#011501; border:2px solid #00e676; padding:10px 16px; width:100%; text-align:center; }
-.mkt-closed { background:#150101; border:2px solid #ff1744; padding:10px 16px; width:100%; text-align:center; }
+.mkt-open   { background:#011501; border:2px solid #00e676;  padding:10px 16px; width:100%; text-align:center; }
+.mkt-closed { background:#150101; border:2px solid #ff1744;  padding:10px 16px; width:100%; text-align:center; }
+.mkt-pre    { background:#1a1500; border:2px solid #ffd54f;  padding:10px 16px; width:100%; text-align:center; }
+.mkt-after  { background:#1a1500; border:2px solid #ffd54f;  padding:10px 16px; width:100%; text-align:center; }
 .mkt-s  { font-size:17px; font-weight:800; letter-spacing:1px; }
 .mkt-cd { font-size:13px; font-weight:600; margin-top:5px; color:#d0d0d0; }
 
 /* MODE BAR — big, obvious timeframe indicator */
 .mode-bar {
-  background:#060606; padding:6px 14px;
+  background:#060606; padding:10px 14px;
   border-bottom:2px solid #1e1e1e;
   display:flex; align-items:center; gap:12px;
 }
@@ -145,11 +147,16 @@ st.markdown("""
 .big-chg  { font-size:14px; font-weight:700; margin-top:6px; }
 .tag      { display:inline-block; font-size:14px; font-weight:800; letter-spacing:1px;
             padding:5px 16px; border-radius:2px; margin-top:10px; }
-.tag-on   { background:#011f01; color:#00e676; border:1px solid #005500; }
-.tag-off  { background:#1f0101; color:#ff1744; border:1px solid #550000; }
-.tag-neu  { background:#0a0e10; color:#607d8b; border:1px solid #1a2a33; }
-.tag-apc  { background:#1a0e00; color:#ffd54f; border:1px solid #553300; }
-.tag-nar  { background:#161000; color:#ffd54f; border:1px solid #443300; }
+.tag-on   { background:#011f01; color:#00e676; border:1px solid #005500; }   /* Risk-On / Broad */
+.tag-agg  { background:#002200; color:#00ff88; border:1px solid #007700; }   /* Aggressive */
+.tag-euph { background:#001a00; color:#39ff14; border:1px solid #005500; }   /* Euphoric */
+.tag-lean { background:#071a07; color:#66bb6a; border:1px solid #2e7d32; }   /* Risk-Leaning */
+.tag-neu  { background:#0a0e10; color:#90a4ae; border:1px solid #37474f; }   /* Neutral */
+.tag-def  { background:#1a1200; color:#ffb300; border:1px solid #664d00; }   /* Defensive */
+.tag-off  { background:#1f0101; color:#ff1744; border:1px solid #550000; }   /* Risk-Off */
+.tag-pan  { background:#2a0000; color:#ff0000; border:1px solid #880000; }   /* Panic */
+.tag-apc  { background:#1a0e00; color:#ffd54f; border:1px solid #553300; }   /* Apex Concentration */
+.tag-nar  { background:#161000; color:#ffd54f; border:1px solid #443300; }   /* Narrow */
 
 /* YIELDS — bigger, cleaner */
 .y-hd  { display:grid; grid-template-columns:1.4fr 1fr 0.8fr;
@@ -210,14 +217,30 @@ def badge(m):
     c = {"1D":"mb-1d","1M":"mb-1m","YTD":"mb-ytd"}[m]
     return f'<span class="mb {c}">{m}</span>'
 
-def is_market_hours() -> bool:
-    """True only during regular NYSE trading hours Mon-Fri 9:30am-4:00pm ET."""
+def get_session() -> str:
+    """
+    Return the current US market session:
+      "pre"    — weekday 4:00am–9:29am ET
+      "open"   — weekday 9:30am–3:59pm ET
+      "after"  — weekday 4:00pm–7:59pm ET
+      "closed" — nights, weekends
+    """
     tz  = pytz.timezone("America/New_York")
     now = datetime.now(tz)
-    if now.weekday() >= 5:          # Sat=5, Sun=6
-        return False
+    if now.weekday() >= 5:
+        return "closed"
     t = now.hour * 60 + now.minute
-    return 9 * 60 + 30 <= t < 16 * 60
+    if 4 * 60 <= t < 9 * 60 + 30:
+        return "pre"
+    if 9 * 60 + 30 <= t < 16 * 60:
+        return "open"
+    if 16 * 60 <= t < 20 * 60:
+        return "after"
+    return "closed"
+
+def is_market_hours() -> bool:
+    """True only during regular NYSE trading hours Mon-Fri 9:30am-4:00pm ET."""
+    return get_session() == "open"
 
 def in_reset_window() -> bool:
     """True outside NYSE hours — weekend or weekday 4am-9:30am ET."""
@@ -292,13 +315,13 @@ def news_bar():
         h       = breaking[0]
         age_str = f"{h['age_minutes']}m ago" if h['age_minutes'] < 60 else f"{h['age_minutes']//60}h ago"
         st.markdown(
-            f'<div style="background:#180000;border-left:5px solid #ff1744;'
-            f'border-bottom:2px solid #330000;padding:10px 18px;'
+            f'<div style="background:#0f0000;border-top:2px solid #ff1744;'
+            f'border-bottom:2px solid #ff1744;padding:11px 20px;'
             f'display:flex;align-items:center;gap:16px;">'
             f'<span style="background:#ff1744;color:#fff;font-size:10px;'
             f'font-weight:800;letter-spacing:2px;padding:3px 10px;'
             f'border-radius:2px;flex-shrink:0;white-space:nowrap;">⚡ BREAKING</span>'
-            f'<span style="color:#ffffff;font-size:14px;font-weight:600;flex:1;">'
+            f'<span style="color:#ffffff;font-size:16px;font-weight:600;flex:1;">'
             f'{h["title"]}</span>'
             f'<span style="color:#888;font-size:11px;white-space:nowrap;flex-shrink:0;">'
             f'{h["source"]} · {age_str}</span>'
@@ -309,12 +332,12 @@ def news_bar():
         h       = headlines[0]
         age_str = f"{h['age_minutes']}m ago" if h['age_minutes'] < 60 else f"{h['age_minutes']//60}h ago"
         st.markdown(
-            f'<div style="background:#060606;border-left:5px solid #404040;'
-            f'border-bottom:2px solid #1e1e1e;padding:10px 18px;'
+            f'<div style="background:#0a0a0a;border-top:2px solid #2a2a2a;'
+            f'border-bottom:2px solid #2a2a2a;padding:11px 20px;'
             f'display:flex;align-items:center;gap:16px;">'
             f'<span style="color:#707070;font-size:10px;font-weight:700;'
             f'letter-spacing:2px;flex-shrink:0;white-space:nowrap;">HEADLINES</span>'
-            f'<span style="color:#d0d0d0;font-size:13px;font-weight:500;flex:1;">'
+            f'<span style="color:#d0d0d0;font-size:15px;font-weight:500;flex:1;">'
             f'{h["title"]}</span>'
             f'<span style="color:#505050;font-size:11px;white-space:nowrap;flex-shrink:0;">'
             f'{h["source"]} · {age_str}</span>'
@@ -371,10 +394,23 @@ def top_row():
             f'<div class="idx-px">${fp(d.get("price"))}</div>'
             f'</div>')
 
-    is_open  = market.get("is_open", False)
-    mkt_cls  = "mkt-open"   if is_open else "mkt-closed"
-    mkt_stxt = "MARKET: OPEN" if is_open else "MARKET: CLOSED"
-    mkt_col  = "pos" if is_open else "neg"
+    session  = get_session()
+    if session == "open":
+        mkt_cls  = "mkt-open"
+        mkt_stxt = "MARKET: OPEN"
+        mkt_col  = "pos"
+    elif session == "pre":
+        mkt_cls  = "mkt-pre"
+        mkt_stxt = "PRE-MARKET"
+        mkt_col  = "gld"
+    elif session == "after":
+        mkt_cls  = "mkt-after"
+        mkt_stxt = "AFTER HOURS"
+        mkt_col  = "gld"
+    else:
+        mkt_cls  = "mkt-closed"
+        mkt_stxt = "MARKET: CLOSED"
+        mkt_col  = "neg"
 
     # Big readable mode bar
     mode_cls = {"1D":"mode-1d","1M":"mode-1m","YTD":"mode-ytd"}[MODE]
@@ -390,7 +426,7 @@ def top_row():
         f'<div class="mkt-cd">{market.get("countdown","")}</div>'
         f'</div></div></div>'
         # MODE BAR — large, coloured, impossible to miss
-        f'<div class="mode-bar">'
+        f'<div class="mode-bar" style="padding:10px 14px;">'
         f'<span class="mode-label">DISPLAY MODE</span>'
         f'<span class="{mode_cls}">{MODE}</span>'
         f'<span style="font-size:13px;color:#505050;margin-left:4px;">'
@@ -569,13 +605,22 @@ def bottom_row():
     with c2:
         rr  = risk.get("risk_rotation_pct", 0) or 0
         rrl = risk.get("risk_label", "—")
-        tag = {"Risk-On":"tag-on","Risk-Off":"tag-off"}.get(rrl,"tag-neu")
+        tag = {
+            "Euphoric":      "tag-euph",
+            "Aggressive":    "tag-agg",
+            "Risk-On":       "tag-on",
+            "Risk-Leaning":  "tag-lean",
+            "Neutral":       "tag-neu",
+            "Defensive":     "tag-def",
+            "Risk-Off":      "tag-off",
+            "Panic":         "tag-pan",
+        }.get(rrl, "tag-neu")
         st.markdown(
             f'<div class="card" style="border-right:2px solid #1e1e1e;">'
             f'<div class="card-hdr" style="justify-content:center;">Risk Rotation</div>'
             f'<div class="big-wrap">'
             f'<div class="big-num" style="color:#ffffff;">{abs(rr):.3f}</div>'
-            f'<div class="big-sub">HYG / IEF · 1 MONTH</div>'
+            f'<div class="big-sub">HYG / LQD · 1 MONTH</div>'
             f'<div class="big-chg {cl(rr)}">{ar(rr)}&nbsp;{fpc(rr)}</div>'
             f'<div><span class="tag {tag}">{rrl}</span></div>'
             f'</div></div>',
@@ -584,14 +629,24 @@ def bottom_row():
     with c3:
         br  = risk.get("breadth_ratio") or 0
         brl = risk.get("breadth_label", "—")
-        tag = {"Broad":"tag-on","Apex Concentration":"tag-apc",
-               "Narrow":"tag-nar"}.get(brl,"tag-neu")
+        tag = {
+            "Maximum Breadth":      "tag-euph",
+            "Solid Breadth":        "tag-agg",
+            "Risk-On Rotation":     "tag-on",
+            "Healthy Participation":"tag-lean",
+            "Neutral Breadth":      "tag-neu",
+            "Broadening-Out":       "tag-lean",
+            "Thin Participation":   "tag-def",
+            "High Concentration":   "tag-nar",
+            "Severe Divergence":    "tag-off",
+            "Apex Concentration":   "tag-pan",
+        }.get(brl, "tag-neu")
         st.markdown(
             f'<div class="card" style="border-right:2px solid #1e1e1e;">'
             f'<div class="card-hdr" style="justify-content:center;">Breadth</div>'
             f'<div class="big-wrap">'
             f'<div class="big-num" style="color:#ffffff;">{br:.3f}</div>'
-            f'<div class="big-sub">RSP / SPY RATIO</div>'
+            f'<div class="big-sub">RSP / SPY · 10-LEVEL SCALE</div>'
             f'<div class="big-chg t2">EQUAL-WEIGHT vs CAP</div>'
             f'<div><span class="tag {tag}">{brl}</span></div>'
             f'</div></div>',

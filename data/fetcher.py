@@ -594,55 +594,78 @@ def get_market_confidence_index() -> Dict[str, Any]:
 def get_risk_breadth() -> Dict[str, Any]:
     """
     Compute:
-      - Risk Rotation  = HYG 1-month return − IEF 1-month return
-      - Breadth        = RSP / SPY ratio vs its own 30-day moving average
+      - Risk Rotation  = HYG 1-month return − LQD 1-month return
+        HYG = high-yield (junk) bonds  — risk appetite
+        LQD = investment-grade bonds   — risk-off proxy
 
-    Returns
-    -------
-    dict with keys:
-        risk_rotation_pct : float  (percentage spread)
-        risk_label        : str    e.g. "Risk-On", "Risk-Off", "Neutral"
-        breadth_ratio     : float  (RSP/SPY current ratio)
-        breadth_label     : str    e.g. "Broad", "Narrow", "Apex Concentration"
+        Labels follow the IFS scale from config:
+          >= 4.0  : Euphoric
+          >= 2.0  : Aggressive
+          >= 1.2  : Risk-On
+          >= 0.3  : Risk-Leaning
+          >  -0.3 : Neutral
+          >  -1.2 : Defensive
+          >  -2.5 : Risk-Off
+          <= -2.5 : Panic
+
+      - Breadth = RSP / SPY ratio vs its own 30-day MA
     """
     key = "risk_breadth"
+    LQD_TICKER = "LQD"   # iShares IG Corporate Bond ETF
+
+    def _risk_label(spread: float) -> str:
+        if spread >= 4.0:   return "Euphoric"
+        if spread >= 2.0:   return "Aggressive"
+        if spread >= 1.2:   return "Risk-On"
+        if spread >= 0.3:   return "Risk-Leaning"
+        if spread > -0.3:   return "Neutral"
+        if spread > -1.2:   return "Defensive"
+        if spread > -2.5:   return "Risk-Off"
+        return "Panic"
 
     def _fetch():
-        tickers = [HYG_TICKER, IEF_TICKER, RSP_TICKER, SPY_TICKER]
+        tickers = [HYG_TICKER, LQD_TICKER, RSP_TICKER, SPY_TICKER]
         df = _download_multi(tickers, period="3mo")
 
-        # Risk rotation
+        # Risk rotation — HYG vs LQD 1-month spread
         risk_pct   = 0.0
         risk_label = "Neutral"
-        if HYG_TICKER in df.columns and IEF_TICKER in df.columns:
+        if HYG_TICKER in df.columns and LQD_TICKER in df.columns:
             hyg_ret  = _calc_period_return(df[HYG_TICKER].dropna(), 30) or 0
-            ief_ret  = _calc_period_return(df[IEF_TICKER].dropna(), 30) or 0
-            risk_pct = round(hyg_ret - ief_ret, 2)
-            if risk_pct > 1.0:
-                risk_label = "Risk-On"
-            elif risk_pct < -1.0:
-                risk_label = "Risk-Off"
+            lqd_ret  = _calc_period_return(df[LQD_TICKER].dropna(), 30) or 0
+            risk_pct = round(hyg_ret - lqd_ret, 3)
+            risk_label = _risk_label(risk_pct)
 
-        # Breadth
+        # Breadth — RSP/SPY ratio mapped to 10-level scale
+        # Formula mirrors Google Sheets LET/LOOKUP:
+        #   pos = (ratio - 0.27) / (0.3933 - 0.27)  clamped to [0, 1]
+        #   then bucketed into 10 equal deciles
         breadth_ratio = None
         breadth_label = "Unknown"
         if RSP_TICKER in df.columns and SPY_TICKER in df.columns:
             rsp = df[RSP_TICKER].dropna()
             spy = df[SPY_TICKER].dropna()
-            ratio     = (rsp / spy).dropna()
-            ratio_ma  = ratio.rolling(30).mean()
+            ratio         = (rsp / spy).dropna()
             breadth_ratio = round(float(ratio.iloc[-1]), 4)
-            last_ma       = float(ratio_ma.iloc[-1])
-            deviation_pct = (breadth_ratio - last_ma) / last_ma * 100
 
-            if deviation_pct > 1.0:
-                breadth_label = "Broad"
-            elif deviation_pct < -2.0:
-                breadth_label = "Apex Concentration"
-            elif deviation_pct < -0.5:
-                breadth_label = "Narrow"
-            else:
-                breadth_label = "Neutral"
+            MIN_FLOOR   = 0.27
+            MAX_CEILING = 0.3933
+            pos = (breadth_ratio - MIN_FLOOR) / (MAX_CEILING - MIN_FLOOR)
+            pos = max(0.0, min(0.9999, pos))   # clamp to [0, 1)
+
+            LABELS = [
+                "Apex Concentration",    # 0.0 – 0.1
+                "Severe Divergence",     # 0.1 – 0.2
+                "High Concentration",    # 0.2 – 0.3
+                "Thin Participation",    # 0.3 – 0.4
+                "Broadening-Out",        # 0.4 – 0.5
+                "Neutral Breadth",       # 0.5 – 0.6
+                "Healthy Participation", # 0.6 – 0.7
+                "Risk-On Rotation",      # 0.7 – 0.8
+                "Solid Breadth",         # 0.8 – 0.9
+                "Maximum Breadth",       # 0.9 – 1.0
+            ]
+            breadth_label = LABELS[int(pos * 10)]
 
         return {
             "risk_rotation_pct": risk_pct,
