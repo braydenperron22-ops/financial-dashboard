@@ -639,7 +639,7 @@ with col_mci:
     mci_panel()
 
 with col_port:
-    @st.fragment(run_every=300)
+    @st.fragment(run_every=60)
     def portfolio_panel():
         sync_mode()
         MODE = get_mode(); KEY = mk(MODE)
@@ -688,7 +688,7 @@ with col_port:
             f'<div class="stat-val {cl(ret)}">{fpc(ret)}</div></div>'
             f'<div class="stat-box"><div class="stat-lbl">Beta vs SPY</div>'
             f'<div class="stat-val t0">{f"{beta:.2f}" if beta else "—"}</div></div>'
-            f'<div class="stat-box"><div class="stat-lbl">BTC/XEQT Corr</div>'
+            f'<div class="stat-box"><div class="stat-lbl">IBIT/XEQT Corr</div>'
             f'<div class="stat-val t0">{corr_display}</div></div>'
             f'<div class="stat-box"><div class="stat-lbl">Alpha vs SPY</div>'
             f'<div class="stat-val {cl(alpha)}">'
@@ -726,7 +726,7 @@ st.markdown('<div style="height:2px;background:#1e1e1e;"></div>', unsafe_allow_h
 # =============================================================================
 # BOTTOM ROW — all 5-min sync
 # =============================================================================
-@st.fragment(run_every=300)
+@st.fragment(run_every=60)
 def bottom_row():
     sync_mode()
     MODE    = get_mode(); KEY = mk(MODE)
