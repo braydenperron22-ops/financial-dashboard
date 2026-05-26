@@ -374,41 +374,51 @@ if is_night_mode():
 # =============================================================================
 st.markdown("""<script>
 (function(){
-  const prev={};
-  function flash(el,cls){
-    el.classList.remove('flash-pos','flash-neg');
-    void el.offsetWidth; el.classList.add(cls);
-    setTimeout(()=>el.classList.remove(cls),1100);
+  const store = {};
+
+  function domKey(el) {
+    const parts = [el.className.trim().split(' ')[0]];
+    let node = el;
+    for (let i = 0; i < 8; i++) {
+      const p = node.parentElement;
+      if (!p || p === document.body) break;
+      parts.push(Array.from(p.children).indexOf(node));
+      node = p;
+    }
+    return parts.join('|');
   }
-  function countUp(el,from,to,dur){
-    const start=performance.now();
-    const dec=(String(to).split('.')[1]||'').length;
-    const hasPct=el.textContent.includes('%');
-    const hasPlus=el.textContent.startsWith('+');
-    (function step(now){
-      const p=Math.min((now-start)/dur,1);
-      const e=p<.5?2*p*p:-1+(4-2*p)*p;
-      const cur=from+(to-from)*e;
-      const sign=(hasPlus&&cur>=0)?'+':'';
-      el.textContent=sign+cur.toFixed(dec)+(hasPct?'%':'');
-      if(p<1)requestAnimationFrame(step);
-    })(start);
+
+  function parseNum(text) {
+    return parseFloat(text.replace(/[+,% \u25b2\u25bc]/g, ''));
   }
-  const obs=new MutationObserver(muts=>{
-    muts.forEach(m=>m.addedNodes.forEach(node=>{
-      if(node.nodeType!==1)return;
-      node.querySelectorAll('.idx-pct,.pt-ch,.pt-ret,.stat-val,.big-num,.y-r,.vix-v').forEach(el=>{
-        const id=el.className+'|'+el.closest('[data-key]')?.dataset?.key+'|'+el.textContent;
-        const num=parseFloat(el.textContent.replace(/[,%+\u25b2\u25bc\s]/g,''));
-        if(!isNaN(num)&&id in prev&&prev[id]!==num){
-          flash(el,num>prev[id]?'flash-pos':'flash-neg');
-          countUp(el,prev[id],num,500);
-        }
-        prev[id]=num;
-      });
-    }));
+
+  function flash(el, isUp) {
+    el.classList.remove('flash-pos', 'flash-neg');
+    void el.offsetWidth;
+    el.classList.add(isUp ? 'flash-pos' : 'flash-neg');
+    setTimeout(() => el.classList.remove('flash-pos', 'flash-neg'), 1200);
+  }
+
+  function scan() {
+    const sel = '.idx-pct, .pt-ch, .pt-ret, .stat-val, .big-num, .y-r, .vix-v';
+    document.querySelectorAll(sel).forEach(el => {
+      const key = domKey(el);
+      const num = parseNum(el.textContent);
+      if (isNaN(num)) return;
+      if (key in store && store[key] !== num) {
+        flash(el, num > store[key]);
+      }
+      store[key] = num;
+    });
+  }
+
+  let timer;
+  const obs = new MutationObserver(() => {
+    clearTimeout(timer);
+    timer = setTimeout(scan, 150);
   });
-  obs.observe(document.body,{childList:true,subtree:true});
+  obs.observe(document.body, { childList: true, subtree: true });
+  setTimeout(scan, 1500);
 })();
 </script>""", unsafe_allow_html=True)
 
