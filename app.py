@@ -360,15 +360,18 @@ KEY  = mk(MODE)
 # NIGHT MODE
 # =============================================================================
 if is_night_mode():
-    tz       = pytz.timezone("America/New_York")
-    now_et   = datetime.now(tz)
-    time_str = now_et.strftime("%-I:%M")
-    ampm     = now_et.strftime("%p").lower()
-    st.markdown(
-        f'<div class="night-screen">'
-        f'<div class="night-clock">{time_str}</div>'
-        f'<div class="night-sub">{ampm} · new york</div>'
-        f'</div>', unsafe_allow_html=True)
+    @st.fragment(run_every=60)
+    def night_mode():
+        tz       = pytz.timezone("America/New_York")
+        now_et   = datetime.now(tz)
+        time_str = now_et.strftime("%-I:%M")
+        ampm     = now_et.strftime("%p").lower()
+        st.markdown(
+            f'<div class="night-screen">'
+            f'<div class="night-clock">{time_str}</div>'
+            f'<div class="night-sub">{ampm} · new york</div>'
+            f'</div>', unsafe_allow_html=True)
+    night_mode()
     st.stop()
 
 # =============================================================================
