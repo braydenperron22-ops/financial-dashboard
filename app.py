@@ -738,7 +738,8 @@ def bottom_row():
             f'<div class="big-wrap">'
             f'<div class="big-num {cl(rr)}">{abs(rr):.3f}</div>'
             f'<div class="big-sub">HYG / LQD SPREAD</div>'
-            f'<div class="big-chg {cl(rr_chg)}">{ar(rr_chg)}&nbsp;{fpc(rr_chg)} {period_lbl}</div>'
+            f'<div class="big-chg {cl(rr_chg)}" style="font-size:17px;">{ar(rr_chg)}&nbsp;{fpc(rr_chg)}</div>'
+            f'<div style="font-size:9px;color:#555;letter-spacing:1.5px;margin-top:2px;">{period_lbl} CHANGE</div>'
             f'<div><span class="tag {tag}">{rrl}</span></div>'
             f'</div></div>', unsafe_allow_html=True)
 
@@ -766,7 +767,8 @@ def bottom_row():
             f'<div class="big-wrap">'
             f'<div class="big-num t0">{br:.4f}</div>'
             f'<div class="big-sub">RSP / SPY · 10-LEVEL</div>'
-            f'<div class="big-chg {br_chg_cl}">{br_chg_ar}&nbsp;{br_chg_str} {period_lbl}</div>'
+            f'<div class="big-chg {br_chg_cl}" style="font-size:17px;">{br_chg_ar}&nbsp;{br_chg_str}</div>'
+            f'<div style="font-size:9px;color:#555;letter-spacing:1.5px;margin-top:2px;">{period_lbl} CHANGE</div>'
             f'<div><span class="tag {tag}">{brl}</span></div>'
             f'</div></div>', unsafe_allow_html=True)
 
@@ -775,7 +777,7 @@ def bottom_row():
         for name, d in yields.items():
             yp  = d.get("yield_pct", 0) or 0
             ch1 = d.get("change_1d",  0) or 0
-            cc  = "neg" if ch1<0 else "pos" if ch1>0 else "t2"
+            cc  = "pos" if ch1<0 else "neg" if ch1>0 else "t2"  # falling yield = green
             y_rows += (
                 f'<div class="y-row">'
                 f'<div class="y-n">{name}</div>'
