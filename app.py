@@ -292,6 +292,14 @@ def is_futures_window():
     t = now.hour * 60 + now.minute
     return 6*60+30 <= t < 9*60+30
 
+def is_sunday_futures_open() -> bool:
+    """True Sunday 6pm–10pm ET — show equity futures in the indices bar."""
+    tz  = pytz.timezone("America/New_York")
+    now = datetime.now(tz)
+    if now.weekday() != 6: return False   # Sunday only
+    t = now.hour * 60 + now.minute
+    return 18 * 60 <= t < 22 * 60
+
 def is_futures_active() -> bool:
     """
     Equity futures trade Sun 6pm ET → Fri 5pm ET.
@@ -556,7 +564,9 @@ def top_row():
     time_str = now_et.strftime("%-I:%M %p").lower()
     us_hol   = get_holiday_state("us")
 
-    futures     = get_futures_data() if is_futures_window() else {}
+    # Pre-market weekday window OR Sunday 6pm-10pm evening open
+    show_futures = is_futures_window() or is_sunday_futures_open()
+    futures     = get_futures_data() if show_futures else {}
     FUTURES_MAP = {"S&P 500":"S&P FUT","NASDAQ":"NQ FUT","SMALL-CAP":"RUSSELL FUT"}
 
     idx_cells = ""

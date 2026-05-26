@@ -794,6 +794,62 @@ def get_treasury_yields() -> Dict[str, Any]:
 
 
 # =============================================================================
+# SECTION 14a — MOST ACTIVE TICKERS (dynamic, from Yahoo Finance screener)
+# =============================================================================
+
+def get_most_active_tickers(count: int = 25) -> List[str]:
+    """
+    Fetch today's most active US stocks by volume from Yahoo Finance's
+    predefined screener. Falls back to a static list if the API is unavailable.
+    Cached for 60 minutes — the list doesn't change mid-day.
+    """
+    key = "most_active_tickers"
+
+    FALLBACK = [
+        "AAPL","MSFT","NVDA","AMZN","TSLA",
+        "META","GOOGL","AMD","PLTR","AVGO",
+        "JPM","BAC","XOM","V","MA",
+        "SPY","QQQ","COIN","MSTR","LLY",
+        "UNH","HD","WMT","GS","SHOP",
+    ]
+
+    def _fetch():
+        try:
+            import requests as _req
+            url = (
+                "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved"
+                "?formatted=false&lang=en-US&region=US"
+                f"&scrIds=most_actives&count={count}"
+            )
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36"
+                )
+            }
+            resp = _req.get(url, headers=headers, timeout=10)
+            if resp.status_code != 200:
+                logger.warning("Most active screener returned %s", resp.status_code)
+                return FALLBACK
+
+            data    = resp.json()
+            quotes  = (data.get("finance", {})
+                           .get("result", [{}])[0]
+                           .get("quotes", []))
+            tickers = [q["symbol"] for q in quotes if "symbol" in q]
+            if len(tickers) >= 5:
+                logger.info("Most active: fetched %d tickers", len(tickers))
+                return tickers[:count]
+            return FALLBACK
+
+        except Exception as exc:
+            logger.warning("Most active fetch failed: %s", exc)
+            return FALLBACK
+
+    return fetch_with_cache(key, _fetch, ttl=3600) or FALLBACK
+
+
+# =============================================================================
 # SECTION 14 — ROTATING HEADER TICKER DATA
 # =============================================================================
 
@@ -815,11 +871,15 @@ def get_header_ticker_data() -> List[Dict[str, Any]]:
     key = "header_ticker_data_v2"
 
     def _fetch():
-        df = _download_multi(HEADER_TICKERS, period="5d")
+        # Build sections — swap in live most-active for the MOST ACTIVE slot
+        sections = dict(TICKER_SECTIONS)
+        sections["MOST ACTIVE"] = get_most_active_tickers(25)
+
+        all_tickers = list({t for tickers in sections.values() for t in tickers})
+        df = _download_multi(all_tickers, period="5d")
         items = []
 
-        for section_name, tickers in TICKER_SECTIONS.items():
-            # Section label divider
+        for section_name, tickers in sections.items():
             items.append({
                 "type":   "section",
                 "label":  section_name,
@@ -836,11 +896,11 @@ def get_header_ticker_data() -> List[Dict[str, Any]]:
                             (series.iloc[-1] - series.iloc[-2]) / series.iloc[-2] * 100, 2
                         )
                 items.append({
-                    "type":    "ticker",
-                    "label":   ticker,
-                    "price":   price,
-                    "pct_1d":  pct_1d,
-                    "is_fut":  ticker in FUTURES_TICKERS,
+                    "type":      "ticker",
+                    "label":     ticker,
+                    "price":     price,
+                    "pct_1d":   pct_1d,
+                    "is_fut":    ticker in FUTURES_TICKERS,
                     "is_crypto": ticker in CRYPTO_TICKERS,
                 })
 
