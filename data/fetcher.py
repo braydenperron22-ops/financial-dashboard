@@ -312,7 +312,7 @@ def get_indices_data() -> Dict[str, Dict[str, Any]]:
             }
         return result
 
-    return fetch_with_cache(key, _fetch) or {}
+    return fetch_with_cache(key, _fetch, ttl=120) or {}
 
 
 # =============================================================================
@@ -352,7 +352,7 @@ def get_sectors_data() -> Dict[str, Dict[str, Any]]:
             }
         return result
 
-    return fetch_with_cache(key, _fetch) or {}
+    return fetch_with_cache(key, _fetch, ttl=120) or {}
 
 
 # =============================================================================
@@ -453,7 +453,7 @@ def get_portfolio_data() -> Dict[str, Any]:
 
         return result
 
-    return fetch_with_cache(key, _fetch) or {}
+    return fetch_with_cache(key, _fetch, ttl=120) or {}
 
 
 # =============================================================================
@@ -494,7 +494,7 @@ def get_chart_data(ticker: str) -> Dict[str, Any]:
             "sma200": [round(float(v), 4) if not np.isnan(v) else None for v in sma200],
         }
 
-    return fetch_with_cache(key, _fetch) or {}
+    return fetch_with_cache(key, _fetch, ttl=120) or {}
 
 
 # =============================================================================
@@ -547,7 +547,7 @@ def get_volatility_data() -> Dict[str, Any]:
             },
         }
 
-    return fetch_with_cache(key, _fetch) or {}
+    return fetch_with_cache(key, _fetch, ttl=120) or {}
 
 
 # =============================================================================
@@ -603,7 +603,7 @@ def get_market_confidence_index() -> Dict[str, Any]:
             },
         }
 
-    return fetch_with_cache(key, _fetch) or {}
+    return fetch_with_cache(key, _fetch, ttl=120) or {}
 
 
 # =============================================================================
@@ -693,7 +693,7 @@ def get_risk_breadth() -> Dict[str, Any]:
             "breadth_label":     breadth_label,
         }
 
-    return fetch_with_cache(key, _fetch) or {}
+    return fetch_with_cache(key, _fetch, ttl=120) or {}
 
 
 # =============================================================================
@@ -732,7 +732,7 @@ def get_treasury_yields() -> Dict[str, Any]:
             }
         return result
 
-    return fetch_with_cache(key, _fetch) or {}
+    return fetch_with_cache(key, _fetch, ttl=120) or {}
 
 
 # =============================================================================
