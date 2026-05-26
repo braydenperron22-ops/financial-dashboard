@@ -222,6 +222,29 @@ def _calc_period_return(close_series: pd.Series, days: int) -> Optional[float]:
         return None
 
 
+def _calc_zscore_1d(series: pd.Series, lookback: int = 252) -> Optional[float]:
+    """
+    Calculate how many standard deviations today's 1D return is
+    from the mean of the last `lookback` daily returns.
+
+    Returns the z-score (positive = above mean, negative = below).
+    Returns None if insufficient data.
+    """
+    try:
+        daily = series.pct_change().dropna() * 100   # daily % returns
+        if len(daily) < lookback // 2:               # need at least half the window
+            return None
+        window  = daily.iloc[-lookback:-1]            # exclude today
+        today   = float(daily.iloc[-1])
+        mu      = float(window.mean())
+        sigma   = float(window.std())
+        if sigma == 0:
+            return None
+        return round((today - mu) / sigma, 2)
+    except Exception:
+        return None
+
+
 # =============================================================================
 # SECTION 5 — MARKET STATUS
 # =============================================================================
@@ -309,6 +332,7 @@ def get_indices_data() -> Dict[str, Dict[str, Any]]:
                 "pct_1d":   round(_calc_period_return(series, 1)  or 0, 2),
                 "pct_1m":   round(_calc_period_return(series, 30) or 0, 2),
                 "pct_ytd":  round(_calc_ytd_return(series)        or 0, 2),
+                "sigma_1d": _calc_zscore_1d(series),
             }
         return result
 
@@ -349,6 +373,7 @@ def get_sectors_data() -> Dict[str, Dict[str, Any]]:
                 "sma50":    round(sma50,  2) if sma50  else None,
                 "sma200":   round(sma200, 2) if sma200 else None,
                 "ath":      round(ath, 2),
+                "sigma_1d": _calc_zscore_1d(series),
             }
         return result
 
@@ -388,6 +413,7 @@ def get_portfolio_data() -> Dict[str, Any]:
                 continue
             result["assets"][name] = {
                 "ticker":   ticker,
+                "sigma_1d": _calc_zscore_1d(series),
                 "price":    round(float(series.iloc[-1]), 2),
                 "pct_1d":   round(_calc_period_return(series, 1)  or 0, 2),
                 "pct_1m":   round(_calc_period_return(series, 30) or 0, 2),

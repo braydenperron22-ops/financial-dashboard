@@ -195,6 +195,18 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 .flash-pos { animation:flash-pos 1s ease-out forwards; border-radius:3px; padding:0 3px; }
 .flash-neg { animation:flash-neg 1s ease-out forwards; border-radius:3px; padding:0 3px; }
 
+/* 3-SIGMA PULSE ANIMATIONS */
+@keyframes pulse-pos {
+  0%,100% { color:#00e676; text-shadow:0 0 8px rgba(0,230,118,.8); }
+  50%      { color:#00ff88; text-shadow:0 0 20px rgba(0,230,118,1), 0 0 40px rgba(0,230,118,.4); }
+}
+@keyframes pulse-neg {
+  0%,100% { color:#ff1744; text-shadow:0 0 8px rgba(255,23,68,.8); }
+  50%      { color:#ff4569; text-shadow:0 0 20px rgba(255,23,68,1), 0 0 40px rgba(255,23,68,.4); }
+}
+.sigma-pos { animation:pulse-pos 1.8s ease-in-out infinite; }
+.sigma-neg { animation:pulse-neg 1.8s ease-in-out infinite; }
+
 /* NIGHT MODE */
 .night-screen { position:fixed; top:0; left:0; width:100vw; height:100vh;
   background:#000; z-index:9999; display:flex; align-items:center;
@@ -318,6 +330,20 @@ BREAKING_KEYWORDS = [
     "jobs report","nonfarm","unemployment","fomc","hike","cut",
     "s&p","nasdaq","dow jones","tsx","tsx composite",
 ]
+def sigma_class(sigma, base_colour: str = "") -> str:
+    """
+    Returns a CSS class string to apply pulsing if |sigma| > 3.
+    Stacks on top of the existing colour class.
+    base_colour is passed through so the element keeps its pos/neg class too.
+    """
+    if sigma is None:
+        return base_colour
+    if sigma >= 3.0:
+        return f"{base_colour} sigma-pos".strip()
+    if sigma <= -3.0:
+        return f"{base_colour} sigma-neg".strip()
+    return base_colour
+
 def is_market_headline(t): return any(kw in t.lower() for kw in BREAKING_KEYWORDS)
 
 # =============================================================================
@@ -504,17 +530,20 @@ def top_row():
                 f'</div></div>')
         else:
             raw   = d.get(KEY)
+            sig   = d.get("sigma_1d")
             atype = "tsx" if name == "TSX" else "us"
             if KEY == "pct_1d":
                 colour, arrow, display, is_hol = fmt_1d_with_holiday(raw, atype)
+                pct_cls = sigma_class(sig if not is_hol else None, colour)
             else:
                 colour, arrow, display, is_hol = cl(raw), ar(raw), fpc(raw,2), False
+                pct_cls = colour
             sub       = "Holiday" if is_hol else f"${fp(d.get('price'))}"
             sub_style = "color:#505050;" if is_hol else ""
             idx_cells += (
                 f'<div class="idx-cell">'
                 f'<div class="idx-lbl">{name}</div>'
-                f'<div class="idx-pct {colour}">{arrow}{display}</div>'
+                f'<div class="idx-pct {pct_cls}">{arrow}{display}</div>'
                 f'<div class="idx-px" style="{sub_style}">{sub}</div>'
                 f'</div>')
 
@@ -660,14 +689,14 @@ with col_port:
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">XEQT</div>'
             f'<div class="pt-px" style="color:{xeqt_pcol};">{fp(xeqt_px)}</div>'
-            f'<div class="pt-ch {xc}">{xa}{xd}</div>'
+            f'<div class="pt-ch {sigma_class(xeqt.get("sigma_1d") if KEY=="pct_1d" else None, xc)}">{xa}{xd}</div>'  
             f'<div style="text-align:right;">'
             f'<div class="pt-ret {rc}">{ra}{rd}</div>'
             f'<div class="pt-wt">{"TSX HOLIDAY" if x_hol else "BLENDED 80/20"}</div></div></div>'
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">BTC</div>'
             f'<div class="pt-px" style="color:{btc_pcol};">${fp(btc_px,0)}</div>'
-            f'<div class="pt-ch {bc}">{ba}{bd}</div>'
+            f'<div class="pt-ch {sigma_class(btc.get("sigma_1d") if KEY=="pct_1d" else None, bc)}">{ba}{bd}</div>'  
             f'<div style="text-align:right;">'
             f'<div class="pt-wt" style="margin-top:18px;">20% WEIGHT · 24/7</div>'
             f'</div></div></div>')
@@ -704,11 +733,13 @@ def bottom_row():
                     colour,arrow,display,_ = fmt_1d_with_holiday(raw,"us")
                 else:
                     colour,arrow,display = cl(raw),ar(raw),fpc(raw)
-                nc = sector_name_colour(d.get("price"),d.get("sma50"),d.get("sma200"),d.get("ath"))
+                nc    = sector_name_colour(d.get("price"),d.get("sma50"),d.get("sma200"),d.get("ath"))
+                sig   = d.get("sigma_1d") if KEY == "pct_1d" else None
+                pcls  = sigma_class(sig, colour)
                 rows.append(
                     f'<div class="sec-r">'
                     f'<span class="sec-n" style="color:{nc};">{name}</span>'
-                    f'<span class="sec-pct {colour}">{arrow}{display}</span>'
+                    f'<span class="sec-pct {pcls}">{arrow}{display}</span>'
                     f'</div>')
             return "".join(rows)
         st.markdown(
