@@ -48,15 +48,15 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 .tkr-outer {
   width:100vw; position:relative; left:50%; transform:translateX(-50%);
   overflow:hidden; background:#000;
-  border-top:2px solid #00e676; border-bottom:3px solid #1e1e1e; padding:8px 0;
+  border-top:2px solid #00e676; border-bottom:2px solid #1e1e1e; padding:11px 0;
 }
 .tkr-track { display:inline-block; white-space:nowrap; animation:tkr 240s linear infinite; }
 .tkr-track:hover { animation-play-state:paused; }
 @keyframes tkr { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
-.ti   { display:inline-flex; align-items:baseline; gap:7px; margin:0 22px; font-size:15px; }
-.ti-s { color:#fff; font-weight:700; font-size:15px; }
-.ti-p { color:#b0b0b0; font-size:13px; }
-.ti-c { font-weight:700; font-size:15px; }
+.ti   { display:inline-flex; align-items:baseline; gap:8px; margin:0 26px; font-size:17px; }
+.ti-s { color:#fff; font-weight:700; font-size:17px; }
+.ti-p { color:#b0b0b0; font-size:14px; }
+.ti-c { font-weight:700; font-size:17px; }
 .td   { display:inline-block; margin:0 18px; font-size:12px; color:#00bcd4;
         background:#011; padding:2px 10px; border:1px solid #0d3d4a;
         border-radius:2px; font-weight:600; vertical-align:middle; }
@@ -131,18 +131,18 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 /* SECTORS */
 .sec-grid { display:grid; grid-template-columns:1fr 1fr; }
 .sec-r    { display:flex; justify-content:space-between; align-items:center;
-            padding:5px 4px; border-bottom:1px solid #0d0d0d; }
+            padding:7px 4px; border-bottom:1px solid #0d0d0d; }
 .sec-r:last-child { border-bottom:none; }
-.sec-n    { font-size:14px; font-weight:400; }
-.sec-pct  { font-weight:700; font-size:13px; text-align:right; }
+.sec-n    { font-size:15px; font-weight:500; }
+.sec-pct  { font-weight:700; font-size:15px; text-align:right; }
 .sec-grid>div:first-child .sec-r { padding-right:12px; border-right:1px solid #1a1a1a; }
 .sec-grid>div:last-child  .sec-r { padding-left:12px; }
 
 /* RISK / BREADTH */
 .big-wrap { text-align:center; padding:4px 0; }
 .big-num  { font-size:54px; font-weight:900; letter-spacing:-2px; line-height:1; margin:8px 0 4px; color:#ffffff; }
-.big-sub  { font-size:12px; color:#cccccc; letter-spacing:1px; font-weight:500; }
-.big-chg  { font-size:14px; font-weight:700; margin-top:6px; }
+.big-sub  { font-size:13px; color:#cccccc; letter-spacing:1px; font-weight:500; }
+.big-chg  { font-size:18px; font-weight:700; margin-top:8px; }
 .tag      { display:inline-block; font-size:12px; font-weight:700; letter-spacing:.5px; padding:4px 12px; border-radius:4px; margin-top:8px; }
 .tag-on   { background:#011f01; color:#00e676; border:1px solid #005500; }
 .tag-agg  { background:#002200; color:#00ff88; border:1px solid #007700; }
@@ -162,9 +162,9 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 .y-row { display:grid; grid-template-columns:1.4fr 1fr 0.9fr;
           padding:8px 0; border-bottom:1px solid #0d0d0d; align-items:center; }
 .y-row:last-child { border-bottom:none; }
-.y-n   { color:#e8e8e8; font-size:14px; font-weight:500; }
-.y-r   { font-size:18px; font-weight:700; color:#fff; text-align:center; }
-.y-bp  { font-size:12px; font-weight:700; text-align:right;
+.y-n   { color:#e8e8e8; font-size:15px; font-weight:500; }
+.y-r   { font-size:19px; font-weight:700; color:#fff; text-align:center; }
+.y-bp  { font-size:13px; font-weight:700; text-align:right;
 }
 
 /* COLOURS */
@@ -232,7 +232,7 @@ def fpbp(v):
     """Convert yield % change to basis points. 1bp = 0.01%"""
     if v is None: return "—"
     bp = round(v * 100, 1)
-    return f"{bp:+.1f} bp"
+    return f"{bp:+.0f} bp"
 
 def cl(v):
     if v is None: return "t2"
@@ -461,24 +461,24 @@ def news_bar():
         h = breaking[0]
         age = f"{h['age_minutes']}m ago" if h['age_minutes']<60 else f"{h['age_minutes']//60}h ago"
         st.markdown(
-            f'<div style="background:#0f0000;border-top:2px solid #ff1744;'
-            f'border-bottom:2px solid #ff1744;padding:10px 20px;'
+            f'<div style="background:#0f0000;border-top:3px solid #ff1744;'
+            f'border-bottom:2px solid #ff1744;padding:12px 20px;'
             f'display:flex;align-items:center;gap:16px;">'
             f'<span style="background:#ff1744;color:#fff;font-size:10px;font-weight:700;'
             f'letter-spacing:1.5px;padding:3px 10px;border-radius:3px;flex-shrink:0;">⚡ BREAKING</span>'
-            f'<span style="color:#fff;font-size:16px;font-weight:600;flex:1;">{h["title"]}</span>'
+            f'<span style="color:#fff;font-size:17px;font-weight:600;flex:1;">{h["title"]}</span>'
             f'<span style="color:#888;font-size:11px;flex-shrink:0;">{h["source"]} · {age}</span>'
             f'</div>', unsafe_allow_html=True)
     elif quiet:
         h = quiet[0]
         age = f"{h['age_minutes']}m ago" if h['age_minutes']<60 else f"{h['age_minutes']//60}h ago"
         st.markdown(
-            f'<div style="background:#0a0a0a;border-top:2px solid #2a2a2a;'
+            f'<div style="background:#0a0a0a;border-top:2px solid #383838;'
             f'border-bottom:2px solid #2a2a2a;padding:10px 20px;'
             f'display:flex;align-items:center;gap:16px;">'
             f'<span style="color:#707070;font-size:10px;font-weight:700;'
             f'letter-spacing:1.5px;flex-shrink:0;">HEADLINES</span>'
-            f'<span style="color:#d0d0d0;font-size:15px;font-weight:500;flex:1;">{h["title"]}</span>'
+            f'<span style="color:#d8d8d8;font-size:16px;font-weight:500;flex:1;">{h["title"]}</span>'
             f'<span style="color:#505050;font-size:11px;flex-shrink:0;">{h["source"]} · {age}</span>'
             f'</div>', unsafe_allow_html=True)
 
@@ -778,7 +778,7 @@ def bottom_row():
             f'<div class="big-num t0">{abs(rr):.3f}</div>'
             f'<div class="big-sub">HYG / LQD SPREAD</div>'
             f'<div class="big-chg {cl(rr_chg)}" style="font-size:17px;">{ar(rr_chg)}&nbsp;{fpc(rr_chg)}</div>'
-            f'<div style="font-size:9px;color:#555;letter-spacing:1.5px;margin-top:2px;">{period_lbl} CHANGE</div>'
+            f'<div style="font-size:12px;color:#aaaaaa;letter-spacing:1px;margin-top:3px;font-weight:500;">{period_lbl} CHANGE</div>'
             f'<div><span class="tag {tag}">{rrl}</span></div>'
             f'</div></div>', unsafe_allow_html=True)
 
@@ -809,7 +809,7 @@ def bottom_row():
             f'<div class="big-num t0">{br:.3f}</div>'
             f'<div class="big-sub">RSP / SPY · 10-LEVEL</div>'
             f'<div class="big-chg {br_chg_cl}" style="font-size:17px;">{br_chg_ar}&nbsp;{br_chg_str}</div>'
-            f'<div style="font-size:9px;color:#555;letter-spacing:1.5px;margin-top:2px;">{period_lbl} CHANGE</div>'
+            f'<div style="font-size:12px;color:#aaaaaa;letter-spacing:1px;margin-top:3px;font-weight:500;">{period_lbl} CHANGE</div>'
             f'<div><span class="tag {tag}">{brl}</span></div>'
             f'</div></div>', unsafe_allow_html=True)
 
