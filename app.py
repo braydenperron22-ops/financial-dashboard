@@ -1,7 +1,5 @@
 # =============================================================================
-# app.py  —  MARKET TERMINAL  v10
-# #10 BTC/XEQT corr  #11 mode sync  #12 Inter font  #13 animations
-# #14 MCI 9-level     #15 sector DMA names  #16 4am reset
+# app.py  —  MARKET TERMINAL  v11  — TV optimised, premium redesign
 # =============================================================================
 from datetime import datetime
 import pytz
@@ -20,204 +18,234 @@ from data.fetcher import (
 st.set_page_config(page_title="MARKET TERMINAL", layout="wide",
                    initial_sidebar_state="collapsed")
 
-# =============================================================================
-# CSS  — #12: Inter/system sans-serif hierarchy
-# =============================================================================
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 
+/* ── RESET ── */
 #MainMenu,footer,header,[data-testid="stToolbar"],
 [data-testid="stHeader"],.stDeployButton { display:none !important; }
-
-.stApp { background:#060606 !important; padding-top:0 !important; margin-top:0 !important; }
+.stApp { background:#050505 !important; padding-top:0 !important; margin-top:0 !important; }
 .main .block-container { padding:0 !important; max-width:100% !important; margin-top:0 !important; }
-.stApp > div { padding-top:0 !important; margin-top:0 !important; }
-section.main > div { padding-top:0 !important; }
-div[data-testid="stAppViewContainer"] { padding-top:0 !important; margin-top:0 !important; }
-div[data-testid="stAppViewBlockContainer"] { padding-top:0 !important; margin-top:0 !important; }
-div[data-testid="block-container"] { padding-top:0 !important; margin-top:0 !important; }
-div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
-.appview-container .main .block-container { padding-top:0 !important; margin-top:0 !important; }
+.stApp>div,[data-testid="stAppViewContainer"],[data-testid="stAppViewBlockContainer"],
+[data-testid="block-container"],section.main>div,
+.appview-container .main .block-container
+{ padding-top:0 !important; margin-top:0 !important; }
 [data-testid="stHorizontalBlock"] { gap:0 !important; padding:0 !important; }
-[data-testid="column"]>div        { padding:0 !important; }
-[data-testid="stVerticalBlock"]   { gap:0 !important; }
-.element-container { margin:0 !important; padding:0 !important; }
-.stMarkdown        { margin:0 !important; padding:0 !important; }
+[data-testid="column"]>div { padding:0 !important; }
+[data-testid="stVerticalBlock"] { gap:0 !important; }
+.element-container,.stMarkdown { margin:0 !important; padding:0 !important; }
 ::-webkit-scrollbar { display:none; }
 
-/* ── FONT HIERARCHY (#12) ──
-   Sans-serif (Inter) for all labels, headers, tags, UI chrome
-   Mono (IBM Plex Mono) only for numbers and prices */
-* { font-family: 'Inter', -apple-system, BlinkMacSystemFont,
-    'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-    box-sizing:border-box; }
-.mono, .idx-pct, .idx-px, .clock-time, .mci-num, .vix-v,
-.pt-px, .pt-ch, .pt-ret, .stat-val, .big-num, .y-r,
-.ti-p, .ti-c, .ti-s { font-family:'IBM Plex Mono','Courier New',monospace !important; }
+/* ── FONTS ── */
+* { font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif !important;
+    box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+.mono,.idx-pct,.idx-px,.clock-time,.mci-num,.vix-v,
+.pt-px,.pt-ch,.pt-ret,.stat-val,.big-num,.y-r,
+.ti-p,.ti-c,.ti-s,.night-clock
+{ font-family:'IBM Plex Mono','Courier New',monospace !important; }
 
-/* TICKER */
+/* ── TICKER ── */
 .tkr-outer {
   width:100vw; position:relative; left:50%; transform:translateX(-50%);
   overflow:hidden; background:#000;
-  border-top:2px solid #00e676; border-bottom:3px solid #1e1e1e; padding:8px 0;
+  border-bottom:1px solid #1a1a1a; padding:10px 0;
 }
-.tkr-track { display:inline-block; white-space:nowrap; animation:tkr 240s linear infinite; }
+.tkr-track { display:inline-block; white-space:nowrap; animation:tkr 200s linear infinite; }
 .tkr-track:hover { animation-play-state:paused; }
-@keyframes tkr { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
-.ti   { display:inline-flex; align-items:baseline; gap:7px; margin:0 22px; font-size:15px; }
-.ti-s { color:#fff; font-weight:700; font-size:15px; }
-.ti-p { color:#b0b0b0; font-size:13px; }
-.ti-c { font-weight:700; font-size:15px; }
-.td   { display:inline-block; margin:0 18px; font-size:12px; color:#00bcd4;
-        background:#011; padding:2px 10px; border:1px solid #0d3d4a;
-        border-radius:2px; font-weight:600; vertical-align:middle; }
+@keyframes tkr { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.ti   { display:inline-flex; align-items:baseline; gap:8px; margin:0 28px; }
+.ti-s { color:#fff; font-weight:700; font-size:14px; letter-spacing:.3px; }
+.ti-p { color:#555; font-size:12px; }
+.ti-c { font-weight:700; font-size:14px; }
+.td   { display:inline-block; margin:0 20px; font-size:11px; color:#00bcd4;
+        background:rgba(0,188,212,.06); padding:2px 10px;
+        border:1px solid rgba(0,188,212,.2); border-radius:3px;
+        font-weight:600; vertical-align:middle; letter-spacing:.5px; }
 
-/* CARD */
-.card     { background:#090909; border:1px solid #1e1e1e; padding:13px 14px; height:100%; }
-.card-hdr { font-size:10px; font-weight:700; letter-spacing:1.5px; color:#ffffff;
-            text-transform:uppercase; padding-bottom:7px; margin-bottom:9px;
-            border-bottom:1px solid #1a1a1a; display:flex;
-            justify-content:space-between; align-items:center; }
+/* ── NEWS STRIP ── */
+.news-breaking { display:flex; align-items:center; gap:14px;
+  background:linear-gradient(90deg,#1a0000 0%,#0f0000 100%);
+  border-bottom:1px solid #ff174430; padding:9px 20px; }
+.news-quiet { display:flex; align-items:center; gap:14px;
+  background:#080808; border-bottom:1px solid #1a1a1a; padding:9px 20px; }
 
-/* INDICES ROW */
-.idx-row  { display:flex; width:100%; background:#090909; border-top:2px solid #303030; border-bottom:2px solid #1e1e1e; }
-.idx-cell { flex:1; padding:13px 10px; text-align:center; border-right:1px solid #1e1e1e; }
+/* ── INDICES ── */
+.idx-row { display:flex; width:100%; background:#070707;
+  border-bottom:1px solid #151515; }
+.idx-cell { flex:1; padding:14px 12px; text-align:center;
+  border-right:1px solid #111; position:relative; }
 .idx-cell:last-of-type { border-right:none; }
-.idx-lbl  { font-size:9px; color:#ffffff; letter-spacing:1.5px; text-transform:uppercase;
-            margin-bottom:5px; font-weight:600; }
-.idx-pct  { font-size:30px; font-weight:800; line-height:1; }
-.idx-px   { font-size:12px; color:#c8c8c8; margin-top:5px; }
-.clock-cell { width:190px; flex-shrink:0; padding:13px 14px; display:flex;
-  flex-direction:column; justify-content:center; align-items:center;
-  border-left:2px solid #1e1e1e; background:#090909; }
-.clock-time { font-size:38px; font-weight:800; color:#fff; line-height:1; text-align:center; }
-.clock-sub  { font-size:9px; color:#d0d0d0; letter-spacing:2px; margin-top:5px; font-weight:500; }
-.mkt-cell { width:210px; flex-shrink:0; padding:13px 14px; display:flex;
-  align-items:center; justify-content:center;
-  border-left:2px solid #1e1e1e; background:#090909; }
-.mkt-open   { background:#011501; border:2px solid #00e676; padding:7px 16px; width:100%; text-align:center; }
-.mkt-closed { background:#150101; border:2px solid #ff1744; padding:7px 16px; width:100%; text-align:center; }
-.mkt-pre    { background:#1a1500; border:2px solid #ffd54f; padding:7px 16px; width:100%; text-align:center; }
-.mkt-after  { background:#1a1500; border:2px solid #ffd54f; padding:7px 16px; width:100%; text-align:center; }
-.mkt-s  { font-size:16px; font-weight:800; letter-spacing:0.5px; }
-.mkt-cd { font-size:12px; font-weight:500; margin-top:5px; color:#d0d0d0; }
+.idx-lbl  { font-size:9px; color:#555; letter-spacing:2px;
+  text-transform:uppercase; margin-bottom:6px; font-weight:600; }
+.idx-pct  { font-size:32px; font-weight:800; line-height:1; letter-spacing:-1px; }
+.idx-px   { font-size:11px; color:#555; margin-top:5px; letter-spacing:.3px; }
 
-/* MODE BAR */
-.mode-bar { background:#060606; padding:7px 14px; border-bottom:2px solid #1e1e1e;
-            display:flex; align-items:center; gap:12px; }
-.mode-label { font-size:10px; color:#707070; letter-spacing:1.5px; font-weight:600; }
-.mode-1d  { font-size:20px; font-weight:800; letter-spacing:2px; color:#00e676; border-bottom:3px solid #00e676; padding-bottom:1px; }
-.mode-1m  { font-size:20px; font-weight:800; letter-spacing:2px; color:#00bcd4; border-bottom:3px solid #00bcd4; padding-bottom:1px; }
-.mode-ytd { font-size:20px; font-weight:800; letter-spacing:2px; color:#ffd54f; border-bottom:3px solid #ffd54f; padding-bottom:1px; }
+/* Clock / Market status */
+.clock-cell { width:200px; flex-shrink:0; padding:14px;
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
+  border-left:1px solid #111; background:#070707; }
+.clock-time { font-size:36px; font-weight:700; color:#fff; line-height:1; }
+.clock-sub  { font-size:9px; color:#444; letter-spacing:2.5px; margin-top:6px; font-weight:500; }
+.mkt-cell { width:220px; flex-shrink:0; padding:14px;
+  display:flex; align-items:center; justify-content:center;
+  border-left:1px solid #111; background:#070707; }
+.mkt-open   { background:rgba(0,230,118,.06); border:1px solid rgba(0,230,118,.3);
+  padding:10px 18px; width:100%; text-align:center; border-radius:4px; }
+.mkt-closed { background:rgba(255,23,68,.06); border:1px solid rgba(255,23,68,.3);
+  padding:10px 18px; width:100%; text-align:center; border-radius:4px; }
+.mkt-pre    { background:rgba(255,213,79,.06); border:1px solid rgba(255,213,79,.3);
+  padding:10px 18px; width:100%; text-align:center; border-radius:4px; }
+.mkt-after  { background:rgba(255,213,79,.06); border:1px solid rgba(255,213,79,.3);
+  padding:10px 18px; width:100%; text-align:center; border-radius:4px; }
+.mkt-s  { font-size:14px; font-weight:700; letter-spacing:.5px; }
+.mkt-cd { font-size:11px; font-weight:500; margin-top:5px; color:#888; }
 
-/* MCI */
-.mci-num { font-size:90px; font-weight:900; line-height:1; text-align:center; letter-spacing:-4px; }
-.mci-lbl { font-size:20px; font-weight:700; text-align:center; letter-spacing:1px; margin-top:2px; }
-.vix-duo { display:flex; justify-content:space-between; margin-top:11px; padding-top:10px; border-top:1px solid #1a1a1a; }
+/* ── MODE BAR ── */
+.mode-bar { background:#070707; padding:7px 18px;
+  border-bottom:1px solid #111; display:flex; align-items:center; gap:14px; }
+.mode-label { font-size:9px; color:#444; letter-spacing:2px; font-weight:600; text-transform:uppercase; }
+.mode-pill  { font-size:13px; font-weight:800; letter-spacing:3px;
+  padding:3px 12px; border-radius:3px; text-transform:uppercase; }
+.mode-1d    { background:rgba(0,230,118,.1); color:#00e676; border:1px solid rgba(0,230,118,.25); }
+.mode-1m    { background:rgba(0,188,212,.1); color:#00bcd4; border:1px solid rgba(0,188,212,.25); }
+.mode-ytd   { background:rgba(255,213,79,.1); color:#ffd54f; border:1px solid rgba(255,213,79,.25); }
+.mode-desc  { font-size:12px; color:#333; font-weight:400; }
+
+/* ── AI SUMMARY ── */
+.ai-bar { display:flex; align-items:center; gap:14px;
+  background:#070707; border-bottom:1px solid #111; padding:8px 18px; }
+.ai-tag { font-size:8px; font-weight:700; letter-spacing:2px; color:#00e676;
+  background:rgba(0,230,118,.08); border:1px solid rgba(0,230,118,.2);
+  padding:3px 8px; border-radius:3px; flex-shrink:0; }
+
+/* ── CARD ── */
+.card { background:#070707; border:1px solid #111;
+  padding:14px 16px; height:100%; }
+.card-hdr { font-size:9px; font-weight:700; letter-spacing:2px; color:#444;
+  text-transform:uppercase; padding-bottom:8px; margin-bottom:10px;
+  border-bottom:1px solid #111; display:flex;
+  justify-content:space-between; align-items:center; }
+
+/* ── MCI ── */
+.mci-num { font-size:96px; font-weight:900; line-height:1;
+  text-align:center; letter-spacing:-5px; }
+.mci-lbl { font-size:19px; font-weight:600; text-align:center;
+  letter-spacing:1.5px; margin-top:4px; }
+.vix-duo { display:flex; justify-content:space-between; margin-top:12px;
+  padding-top:12px; border-top:1px solid #111; }
 .vix-blk { text-align:center; flex:1; }
-.vix-l   { font-size:10px; color:#ffffff; letter-spacing:1px; margin-bottom:5px; font-weight:600; }
-.vix-v   { font-size:25px; font-weight:800; }
-.fbar    { margin-top:11px; padding-top:10px; border-top:1px solid #1a1a1a; }
-.fb-row  { margin-bottom:5px; }
-.fb-top  { display:flex; justify-content:space-between; font-size:9px; color:#ffffff; margin-bottom:5px; font-weight:500; }
-.fb-bg   { background:#111; height:4px; border-radius:2px; }
-.fb-fill { height:4px; border-radius:2px; opacity:.6; transition:width .5s ease; }
+.vix-l   { font-size:9px; color:#444; letter-spacing:1.5px; margin-bottom:6px;
+  font-weight:600; text-transform:uppercase; }
+.vix-v   { font-size:26px; font-weight:700; }
+.fbar    { margin-top:12px; padding-top:12px; border-top:1px solid #111; }
+.fb-row  { margin-bottom:6px; }
+.fb-top  { display:flex; justify-content:space-between; font-size:9px;
+  color:#555; margin-bottom:4px; font-weight:500; }
+.fb-bg   { background:#111; height:3px; border-radius:2px; }
+.fb-fill { height:3px; border-radius:2px; opacity:.7; transition:width .6s ease; }
 
-/* PORTFOLIO */
-.stats-row { display:flex; gap:7px; margin-bottom:9px; }
-.stat-box  { flex:1; background:#0d0d0d; border:1px solid #1a1a1a; border-radius:3px; padding:7px 10px; }
-.stat-lbl  { font-size:9px; color:#a0a0a0; letter-spacing:1px; text-transform:uppercase;
-             margin-bottom:3px; font-weight:600; }
-.stat-val  { font-size:22px; font-weight:700; }
+/* ── PORTFOLIO ── */
+.stats-row { display:flex; gap:6px; margin-bottom:10px; }
+.stat-box  { flex:1; background:#0a0a0a; border:1px solid #111;
+  border-radius:3px; padding:8px 10px; }
+.stat-lbl  { font-size:8px; color:#555; letter-spacing:1.5px;
+  text-transform:uppercase; margin-bottom:4px; font-weight:600; }
+.stat-val  { font-size:21px; font-weight:700; letter-spacing:-.5px; }
 .pt-hd     { display:grid; grid-template-columns:1fr 1.1fr 1fr 1fr;
-             font-size:9px; color:#a0a0a0; letter-spacing:1px; text-transform:uppercase;
-             padding-bottom:7px; border-bottom:1px solid #1a1a1a; font-weight:600; }
+  font-size:8px; color:#444; letter-spacing:1.5px; text-transform:uppercase;
+  padding-bottom:8px; border-bottom:1px solid #111; font-weight:600; }
 .pt-r      { display:grid; grid-template-columns:1fr 1.1fr 1fr 1fr;
-             padding:14px 0; border-bottom:1px solid #0d0d0d; align-items:center; }
+  padding:13px 0; border-bottom:1px solid #0d0d0d; align-items:center; }
 .pt-r:last-child { border-bottom:none; }
-.pt-sym    { font-size:34px; font-weight:700; color:#fff; }
-.pt-px     { font-size:31px; font-weight:600; transition:color .4s ease; }
-.pt-ch     { font-size:31px; font-weight:700; }
-.pt-ret    { font-size:40px; font-weight:700; text-align:right; line-height:1; }
-.pt-wt     { font-size:11px; color:#a0a0a0; text-align:right; margin-top:5px; font-weight:500; letter-spacing:.5px; }
+.pt-sym    { font-size:32px; font-weight:700; color:#fff; letter-spacing:-.5px; }
+.pt-px     { font-size:30px; font-weight:600; transition:color .4s ease; letter-spacing:-1px; }
+.pt-ch     { font-size:28px; font-weight:700; letter-spacing:-.5px; }
+.pt-ret    { font-size:42px; font-weight:800; text-align:right;
+  line-height:1; letter-spacing:-2px; }
+.pt-wt     { font-size:10px; color:#444; text-align:right; margin-top:5px;
+  font-weight:500; letter-spacing:.5px; text-transform:uppercase; }
 
-/* SECTORS */
+/* ── SECTORS ── */
 .sec-grid { display:grid; grid-template-columns:1fr 1fr; }
 .sec-r    { display:flex; justify-content:space-between; align-items:center;
-            padding:5px 4px; border-bottom:1px solid #0d0d0d; }
+  padding:6px 4px; border-bottom:1px solid #0d0d0d; }
 .sec-r:last-child { border-bottom:none; }
-.sec-n    { font-size:13px; font-weight:500; }
-.sec-pct  { font-weight:700; font-size:13px; text-align:right; }
-.sec-grid>div:first-child .sec-r { padding-right:12px; border-right:1px solid #1a1a1a; }
-.sec-grid>div:last-child  .sec-r { padding-left:12px; }
+.sec-n    { font-size:13px; font-weight:500; letter-spacing:.1px; }
+.sec-pct  { font-weight:700; font-size:13px; font-family:'IBM Plex Mono',monospace !important; }
+.sec-grid>div:first-child .sec-r { padding-right:14px; border-right:1px solid #111; }
+.sec-grid>div:last-child  .sec-r { padding-left:14px; }
 
-/* RISK / BREADTH */
-.big-wrap { text-align:center; padding:4px 0; }
-.big-num  { font-size:54px; font-weight:900; letter-spacing:-2px; line-height:1;
-            margin:8px 0 4px; color:#ffffff; }
-.big-sub  { font-size:10px; color:#c0c0c0; letter-spacing:1px; font-weight:500; }
-.big-chg  { font-size:14px; font-weight:700; margin-top:6px; }
-.tag      { display:inline-block; font-size:12px; font-weight:700; letter-spacing:.5px;
-            padding:4px 12px; border-radius:4px; margin-top:8px; }
-.tag-on   { background:#011f01; color:#00e676; border:1px solid #005500; }
-.tag-agg  { background:#002200; color:#00ff88; border:1px solid #007700; }
-.tag-euph { background:#001a00; color:#39ff14; border:1px solid #005500; }
-.tag-lean { background:#071a07; color:#66bb6a; border:1px solid #2e7d32; }
-.tag-neu  { background:#0a0e10; color:#90a4ae; border:1px solid #37474f; }
-.tag-def  { background:#1a1200; color:#ffb300; border:1px solid #664d00; }
-.tag-off  { background:#1f0101; color:#ff1744; border:1px solid #550000; }
-.tag-pan  { background:#2a0000; color:#ff0000; border:1px solid #880000; }
-.tag-apc  { background:#1a0e00; color:#ffd54f; border:1px solid #553300; }
-.tag-nar  { background:#161000; color:#ffd54f; border:1px solid #443300; }
+/* ── RISK / BREADTH ── */
+.big-wrap { text-align:center; padding:6px 0; }
+.big-num  { font-size:56px; font-weight:900; letter-spacing:-2px; line-height:1;
+  margin:6px 0 4px; }
+.big-sub  { font-size:9px; color:#444; letter-spacing:1.5px; font-weight:600;
+  text-transform:uppercase; }
+.big-chg  { font-size:13px; font-weight:700; margin-top:8px; }
+.tag      { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.5px;
+  padding:5px 14px; border-radius:4px; margin-top:10px; text-transform:uppercase; }
+.tag-on   { background:rgba(0,230,118,.08); color:#00e676; border:1px solid rgba(0,230,118,.2); }
+.tag-agg  { background:rgba(0,255,136,.08); color:#00ff88; border:1px solid rgba(0,255,136,.2); }
+.tag-euph { background:rgba(57,255,20,.08); color:#39ff14; border:1px solid rgba(57,255,20,.2); }
+.tag-lean { background:rgba(102,187,106,.08); color:#66bb6a; border:1px solid rgba(102,187,106,.2); }
+.tag-neu  { background:rgba(144,164,174,.08); color:#90a4ae; border:1px solid rgba(144,164,174,.2); }
+.tag-def  { background:rgba(255,179,0,.08); color:#ffb300; border:1px solid rgba(255,179,0,.2); }
+.tag-off  { background:rgba(255,23,68,.08); color:#ff1744; border:1px solid rgba(255,23,68,.2); }
+.tag-pan  { background:rgba(255,0,0,.1); color:#ff0000; border:1px solid rgba(255,0,0,.2); }
+.tag-apc  { background:rgba(255,213,79,.08); color:#ffd54f; border:1px solid rgba(255,213,79,.2); }
+.tag-nar  { background:rgba(255,213,79,.06); color:#ffd54f; border:1px solid rgba(255,213,79,.15); }
 
-/* YIELDS */
-.y-hd  { display:grid; grid-template-columns:1.4fr 1fr 0.8fr;
-          font-size:9px; color:#a0a0a0; letter-spacing:1px; text-transform:uppercase;
-          padding-bottom:8px; border-bottom:1px solid #1a1a1a; font-weight:600; }
-.y-row { display:grid; grid-template-columns:1.4fr 1fr 0.8fr;
-          padding:8px 0; border-bottom:1px solid #0d0d0d; align-items:center; }
+/* ── YIELDS ── */
+.y-hd  { display:grid; grid-template-columns:1.3fr 1fr 0.9fr;
+  font-size:8px; color:#444; letter-spacing:1.5px; text-transform:uppercase;
+  padding-bottom:8px; border-bottom:1px solid #111; font-weight:600; }
+.y-row { display:grid; grid-template-columns:1.3fr 1fr 0.9fr;
+  padding:9px 0; border-bottom:1px solid #0d0d0d; align-items:center; }
 .y-row:last-child { border-bottom:none; }
-.y-n   { color:#ffffff; font-size:13px; font-weight:500; }
-.y-r   { font-size:18px; font-weight:700; color:#fff; text-align:center; }
-.y-chg { font-size:12px; font-weight:700; text-align:right; }
+.y-n   { color:#ccc; font-size:13px; font-weight:500; }
+.y-r   { font-size:19px; font-weight:700; color:#fff; text-align:center;
+  letter-spacing:-.5px; }
+.y-bp  { font-size:12px; font-weight:700; text-align:right;
+  font-family:'IBM Plex Mono',monospace !important; }
 
-/* COLOURS */
+/* ── COLOURS ── */
 .pos { color:#00e676 !important; } .neg { color:#ff1744 !important; }
 .acc { color:#00bcd4 !important; } .gld { color:#ffd54f !important; }
 .org { color:#ff6d00 !important; }
-.t0  { color:#ffffff !important; } .t1  { color:#c0c0c0 !important; }
-.t2  { color:#707070 !important; }
+.t0  { color:#ffffff !important; } .t1  { color:#888 !important; }
+.t2  { color:#333 !important; }
 
-/* BADGE */
-.mb     { display:inline-block; font-size:8px; font-weight:700; letter-spacing:1px;
-          padding:2px 7px; border-radius:3px; text-transform:uppercase; }
-.mb-1d  { background:#061a06; color:#00e676; border:1px solid #0d3d0d; }
-.mb-1m  { background:#040f1a; color:#00bcd4; border:1px solid #0d2b3d; }
-.mb-ytd { background:#1a1204; color:#ffd54f; border:1px solid #3d2d0d; }
+/* ── BADGE ── */
+.mb     { display:inline-block; font-size:7px; font-weight:700; letter-spacing:1.5px;
+  padding:2px 7px; border-radius:3px; text-transform:uppercase; }
+.mb-1d  { background:rgba(0,230,118,.1); color:#00e676; border:1px solid rgba(0,230,118,.2); }
+.mb-1m  { background:rgba(0,188,212,.1); color:#00bcd4; border:1px solid rgba(0,188,212,.2); }
+.mb-ytd { background:rgba(255,213,79,.1); color:#ffd54f; border:1px solid rgba(255,213,79,.2); }
 
-/* FLASH ANIMATIONS (#13) */
+/* ── DIVIDER ── */
+.div-line { height:1px; background:#111; width:100%; }
+
+/* ── FLASH ANIMATIONS ── */
 @keyframes flash-pos {
-  0%   { background:rgba(0,230,118,.18); color:#00e676 !important; text-shadow:0 0 10px #00e676; }
+  0%   { background:rgba(0,230,118,.15); text-shadow:0 0 14px #00e676; }
   100% { background:transparent; text-shadow:none; }
 }
 @keyframes flash-neg {
-  0%   { background:rgba(255,23,68,.18); color:#ff1744 !important; text-shadow:0 0 10px #ff1744; }
+  0%   { background:rgba(255,23,68,.15); text-shadow:0 0 14px #ff1744; }
   100% { background:transparent; text-shadow:none; }
 }
-.flash-pos { animation:flash-pos 1s ease-out forwards; border-radius:3px; padding:0 3px; }
-.flash-neg { animation:flash-neg 1s ease-out forwards; border-radius:3px; padding:0 3px; }
+.flash-pos { animation:flash-pos 1.2s ease-out forwards; border-radius:3px; padding:0 3px; }
+.flash-neg { animation:flash-neg 1.2s ease-out forwards; border-radius:3px; padding:0 3px; }
 
-/* NIGHT MODE */
-.night-screen {
-  position:fixed; top:0; left:0; width:100vw; height:100vh;
-  background:#000; z-index:9999;
-  display:flex; align-items:center; justify-content:center;
-  flex-direction:column; gap:8px;
-}
-.night-clock { font-family:'IBM Plex Mono',monospace !important;
-  font-size:120px; font-weight:700; color:#c0c0c0; letter-spacing:-4px; line-height:1; }
-.night-sub   { font-size:14px; color:#707070; letter-spacing:4px; font-weight:500; }
+/* ── NIGHT MODE ── */
+.night-screen { position:fixed; top:0; left:0; width:100vw; height:100vh;
+  background:#000; z-index:9999; display:flex; align-items:center;
+  justify-content:center; flex-direction:column; gap:6px; }
+.night-clock { font-size:140px; font-weight:300; color:#d0d0d0;
+  letter-spacing:-6px; line-height:1; }
+.night-sub   { font-size:13px; color:#333; letter-spacing:5px; font-weight:400;
+  text-transform:uppercase; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -234,6 +262,12 @@ def fpc(v, d=2):
     if v is None: return "—"
     return f"{v:+.{d}f}%"
 
+def fpbp(v):
+    """Format yield change as basis points. 1bp = 0.01%"""
+    if v is None: return "—"
+    bp = round(v * 100, 1)
+    return f"{bp:+.1f} bp"
+
 def cl(v):
     if v is None: return "t2"
     return "pos" if v >= 0 else "neg"
@@ -243,16 +277,11 @@ def ar(v):
     return "▲" if v >= 0 else "▼"
 
 def get_mode():
-    # #11: Mode stored in session_state so ALL fragments read the same value
     if "mode" not in st.session_state:
-        m = datetime.now().minute % 30
-        if m < 20: st.session_state.mode = "1D"
-        elif m < 25: st.session_state.mode = "1M"
-        else: st.session_state.mode = "YTD"
+        sync_mode()
     return st.session_state.mode
 
 def sync_mode():
-    """Recalculate mode from clock and store in session_state."""
     m = datetime.now().minute % 30
     if m < 20:   st.session_state.mode = "1D"
     elif m < 25: st.session_state.mode = "1M"
@@ -267,44 +296,35 @@ def badge(m):
 def get_session() -> str:
     tz  = pytz.timezone("America/New_York")
     now = datetime.now(tz)
-    if now.weekday() >= 5:
-        return "closed"
+    if now.weekday() >= 5: return "closed"
     t = now.hour * 60 + now.minute
-    if 4 * 60 <= t < 9 * 60 + 30:   return "pre"
-    if 9 * 60 + 30 <= t < 16 * 60:  return "open"
-    if 16 * 60 <= t < 20 * 60:      return "after"
+    if 4*60 <= t < 9*60+30:   return "pre"
+    if 9*60+30 <= t < 16*60:  return "open"
+    if 16*60 <= t < 20*60:    return "after"
     return "closed"
 
-def is_market_hours() -> bool:
-    return get_session() == "open"
+def is_market_hours(): return get_session() == "open"
 
-def in_reset_window() -> bool:
-    """
-    #16: Reset window is ONLY 4:00am–9:29am ET.
-    After close (4pm–4am) 1D data stays frozen and visible.
-    """
+def in_reset_window():
     tz  = pytz.timezone("America/New_York")
     now = datetime.now(tz)
-    if now.weekday() >= 5:  # Weekend — pre-market only starts Mon 4am
-        return True
+    if now.weekday() >= 5: return True
     t = now.hour * 60 + now.minute
-    return 4 * 60 <= t < 9 * 60 + 30
+    return 4*60 <= t < 9*60+30
 
-def is_night_mode() -> bool:
+def is_night_mode():
     tz  = pytz.timezone("America/New_York")
     now = datetime.now(tz)
     h = now.hour; dow = now.weekday()
     if dow == 6: return h >= 22 or h < 7
     return h >= 19 or h < 7
 
-def is_futures_window() -> bool:
-    """True on weekdays between 6:30am and 9:29am ET — pre-market futures window."""
+def is_futures_window():
     tz  = pytz.timezone("America/New_York")
     now = datetime.now(tz)
-    if now.weekday() >= 5:
-        return False
+    if now.weekday() >= 5: return False
     t = now.hour * 60 + now.minute
-    return 6 * 60 + 30 <= t < 9 * 60 + 30
+    return 6*60+30 <= t < 9*60+30
 
 def get_holiday_state(asset_type: str = "us") -> str:
     if asset_type == "btc": return ""
@@ -313,37 +333,26 @@ def get_holiday_state(asset_type: str = "us") -> str:
 
 def fmt_1d_with_holiday(val, asset_type: str = "us"):
     holiday = get_holiday_state(asset_type)
-    if holiday:
-        return "t0", "", "+0.00%", True
-    if asset_type != "btc" and in_reset_window():
-        return "t0", "", "+0.00%", False
-    if val is None:
-        return "t2", "", "—", False
+    if holiday: return "t0", "", "+0.00%", True
+    if asset_type != "btc" and in_reset_window(): return "t0", "", "+0.00%", False
+    if val is None: return "t2", "", "—", False
     return cl(val), ar(val), fpc(val), False
 
 def fmt_1d(val, is_btc=False):
-    if not is_btc and in_reset_window():
-        return "t0", "", "+0.00%"
-    if val is None:
-        return "t2", "", "—"
+    if not is_btc and in_reset_window(): return "t0", "", "+0.00%"
+    if val is None: return "t2", "", "—"
     return cl(val), ar(val), fpc(val)
 
-def price_colour(price, sma50, sma200, ath) -> str:
+def price_colour(price, sma50, sma200, ath):
     if price is None: return "#ffffff"
     if ath and price >= ath * 0.995:  return "#00bcd4"
     if sma200 and price < sma200:      return "#ff1744"
     if sma50  and price < sma50:       return "#ff6d00"
     return "#ffffff"
 
-def sector_name_colour(price, sma50, sma200, ath) -> str:
-    """#15: Sector name text colour follows same DMA hierarchy."""
-    if price is None: return "#ffffff"
-    if ath and price >= ath * 0.995:  return "#00bcd4"
-    if sma200 and price < sma200:      return "#ff1744"
-    if sma50  and price < sma50:       return "#ff6d00"
-    return "#ffffff"
+def sector_name_colour(price, sma50, sma200, ath):
+    return price_colour(price, sma50, sma200, ath)
 
-# Breaking news filter
 BREAKING_KEYWORDS = [
     "breaking","urgent","fed","federal reserve","rate","cpi","gdp","inflation",
     "recession","crash","rally","surge","plunge","collapse","crisis","war",
@@ -353,18 +362,12 @@ BREAKING_KEYWORDS = [
     "jobs report","nonfarm","unemployment","fomc","hike","cut",
     "s&p","nasdaq","dow jones","tsx","tsx composite",
 ]
-
-def is_market_headline(title: str) -> bool:
-    t = title.lower()
-    return any(kw in t for kw in BREAKING_KEYWORDS)
+def is_market_headline(t): return any(kw in t.lower() for kw in BREAKING_KEYWORDS)
 
 # =============================================================================
-# #11: SYNC MODE — runs first on every load, writes to session_state
-# All fragments then read st.session_state.mode so they're always in sync
+# SYNC MODE
 # =============================================================================
 sync_mode()
-MODE = get_mode()
-KEY  = mk(MODE)
 
 # =============================================================================
 # NIGHT MODE
@@ -372,76 +375,65 @@ KEY  = mk(MODE)
 if is_night_mode():
     @st.fragment(run_every=60)
     def night_mode():
-        tz       = pytz.timezone("America/New_York")
-        now_et   = datetime.now(tz)
-        time_str = now_et.strftime("%-I:%M")
-        ampm     = now_et.strftime("%p").lower()
+        tz      = pytz.timezone("America/New_York")
+        now_et  = datetime.now(tz)
+        t_str   = now_et.strftime("%-I:%M")
+        ampm    = now_et.strftime("%p").lower()
         st.markdown(
             f'<div class="night-screen">'
-            f'<div class="night-clock">{time_str}</div>'
-            f'<div class="night-sub">{ampm} · new york</div>'
+            f'<div class="night-clock">{t_str}</div>'
+            f'<div class="night-sub">{ampm} &nbsp;·&nbsp; new york</div>'
             f'</div>', unsafe_allow_html=True)
     night_mode()
     st.stop()
 
 # =============================================================================
-# #13: ANIMATION ENGINE — JS that watches for DOM value changes and flashes
+# ANIMATION ENGINE
 # =============================================================================
-st.markdown("""
-<script>
+st.markdown("""<script>
 (function(){
-  const NUMS = /^[+\\-]?[\\d,\\.]+%?$/;
-  const prev = {};
-
-  function flash(el, cls){
+  const prev={};
+  function flash(el,cls){
     el.classList.remove('flash-pos','flash-neg');
-    void el.offsetWidth;
-    el.classList.add(cls);
-    setTimeout(()=>el.classList.remove(cls), 1100);
+    void el.offsetWidth; el.classList.add(cls);
+    setTimeout(()=>el.classList.remove(cls),1300);
   }
-
-  function countUp(el, from, to, dur){
-    const start = performance.now();
-    const isInt = Number.isInteger(to);
-    const decimals = isInt ? 0 : (String(to).split('.')[1]||'').length;
-    function step(now){
-      const p = Math.min((now-start)/dur,1);
-      const ease = p<.5 ? 2*p*p : -1+(4-2*p)*p;
-      const cur = from + (to-from)*ease;
-      el.textContent = (to<0||String(el.textContent).startsWith('+') ? (cur>=0?'+':'') : '') +
-                       cur.toFixed(decimals).replace(/\\B(?=(\\d{3})+(?!\\d))/g,',') +
-                       (String(el.textContent).endsWith('%') ? '%' : '');
-      if(p<1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
+  function countUp(el,from,to,dur){
+    const start=performance.now();
+    const dec=(String(to).split('.')[1]||'').length;
+    const hasPct=el.textContent.includes('%');
+    const hasPlus=el.textContent.startsWith('+');
+    (function step(now){
+      const p=Math.min((now-start)/dur,1);
+      const e=p<.5?2*p*p:-1+(4-2*p)*p;
+      const cur=from+(to-from)*e;
+      const sign=(hasPlus&&cur>=0)?'+':'';
+      el.textContent=sign+cur.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g,',')+(hasPct?'%':'');
+      if(p<1)requestAnimationFrame(step);
+    })(start);
   }
-
-  const obs = new MutationObserver(muts=>{
-    muts.forEach(m=>{
-      m.addedNodes.forEach(node=>{
-        if(node.nodeType!==1) return;
-        node.querySelectorAll('.idx-pct,.pt-ch,.pt-ret,.stat-val,.big-num,.y-r,.vix-v').forEach(el=>{
-          const id   = el.className + '|' + (el.closest('[data-key]')||{}).dataset?.key + '|' + el.textContent;
-          const text = el.textContent.trim();
-          const num  = parseFloat(text.replace(/[,%+▲▼]/g,''));
-          if(!isNaN(num) && id in prev && prev[id]!==num){
-            flash(el, num>prev[id] ? 'flash-pos':'flash-neg');
-            countUp(el, prev[id], num, 500);
-          }
-          prev[id] = num;
-        });
+  const obs=new MutationObserver(muts=>{
+    muts.forEach(m=>m.addedNodes.forEach(node=>{
+      if(node.nodeType!==1)return;
+      node.querySelectorAll('.idx-pct,.pt-ch,.pt-ret,.stat-val,.big-num,.y-r,.vix-v').forEach(el=>{
+        const id=el.className+'|'+el.closest('[data-key]')?.dataset?.key+'|'+el.textContent;
+        const num=parseFloat(el.textContent.replace(/[,%+▲▼\s]/g,''));
+        if(!isNaN(num)&&id in prev&&prev[id]!==num){
+          flash(el,num>prev[id]?'flash-pos':'flash-neg');
+          countUp(el,prev[id],num,500);
+        }
+        prev[id]=num;
       });
-    });
+    }));
   });
   obs.observe(document.body,{childList:true,subtree:true});
 })();
-</script>
-""", unsafe_allow_html=True)
+</script>""", unsafe_allow_html=True)
 
 # =============================================================================
-# TICKER  — 5-min sync
+# TICKER
 # =============================================================================
-@st.fragment(run_every=300)
+@st.fragment(run_every=120)
 def ticker_bar():
     header = get_header_ticker_data() or []
     items  = []
@@ -451,7 +443,7 @@ def ticker_bar():
         else:
             raw  = h.get("pct_1d")
             is_b = h["label"] in ("BTC-USD","ETH-USD","COIN","MSTR")
-            c, a, d = fmt_1d(raw, is_btc=is_b)
+            c,a,d = fmt_1d(raw, is_btc=is_b)
             items.append(
                 f'<span class="ti">'
                 f'<span class="ti-s">{h["label"]}</span>'
@@ -466,7 +458,7 @@ def ticker_bar():
 ticker_bar()
 
 # =============================================================================
-# NEWS BAR  — 15 min
+# NEWS
 # =============================================================================
 @st.fragment(run_every=900)
 def news_bar():
@@ -477,76 +469,65 @@ def news_bar():
     quiet    = [h for h in relevant if not h["breaking"]]
     if breaking:
         h = breaking[0]
-        age_str = f"{h['age_minutes']}m ago" if h['age_minutes']<60 else f"{h['age_minutes']//60}h ago"
+        age = f"{h['age_minutes']}m ago" if h['age_minutes']<60 else f"{h['age_minutes']//60}h ago"
         st.markdown(
-            f'<div style="background:#0f0000;border-top:2px solid #ff1744;'
-            f'border-bottom:2px solid #ff1744;padding:10px 20px;'
-            f'display:flex;align-items:center;gap:16px;">'
-            f'<span style="background:#ff1744;color:#fff;font-size:10px;font-weight:700;'
-            f'letter-spacing:1.5px;padding:3px 10px;border-radius:3px;flex-shrink:0;">⚡ BREAKING</span>'
-            f'<span style="color:#fff;font-size:16px;font-weight:600;flex:1;">{h["title"]}</span>'
-            f'<span style="color:#888;font-size:11px;flex-shrink:0;">{h["source"]} · {age_str}</span>'
+            f'<div class="news-breaking">'
+            f'<span style="background:#ff1744;color:#fff;font-size:9px;font-weight:700;'
+            f'letter-spacing:1.5px;padding:3px 9px;border-radius:3px;flex-shrink:0;">⚡ BREAKING</span>'
+            f'<span style="color:#fff;font-size:15px;font-weight:600;flex:1;line-height:1.3;">'
+            f'{h["title"]}</span>'
+            f'<span style="color:#555;font-size:10px;flex-shrink:0;white-space:nowrap;">'
+            f'{h["source"]} · {age}</span>'
             f'</div>', unsafe_allow_html=True)
     elif quiet:
         h = quiet[0]
-        age_str = f"{h['age_minutes']}m ago" if h['age_minutes']<60 else f"{h['age_minutes']//60}h ago"
+        age = f"{h['age_minutes']}m ago" if h['age_minutes']<60 else f"{h['age_minutes']//60}h ago"
         st.markdown(
-            f'<div style="background:#0a0a0a;border-top:2px solid #2a2a2a;'
-            f'border-bottom:2px solid #2a2a2a;padding:10px 20px;'
-            f'display:flex;align-items:center;gap:16px;">'
-            f'<span style="color:#707070;font-size:10px;font-weight:700;'
-            f'letter-spacing:1.5px;flex-shrink:0;">HEADLINES</span>'
-            f'<span style="color:#d0d0d0;font-size:15px;font-weight:500;flex:1;">{h["title"]}</span>'
-            f'<span style="color:#505050;font-size:11px;flex-shrink:0;">{h["source"]} · {age_str}</span>'
+            f'<div class="news-quiet">'
+            f'<span style="color:#333;font-size:9px;font-weight:700;'
+            f'letter-spacing:2px;flex-shrink:0;">HEADLINES</span>'
+            f'<span style="color:#999;font-size:14px;font-weight:400;flex:1;">'
+            f'{h["title"]}</span>'
+            f'<span style="color:#333;font-size:10px;flex-shrink:0;white-space:nowrap;">'
+            f'{h["source"]} · {age}</span>'
             f'</div>', unsafe_allow_html=True)
 
 news_bar()
 
 # =============================================================================
-# AI SUMMARY  — hourly
+# AI SUMMARY
 # =============================================================================
 @st.fragment(run_every=3600)
 def summary_bar():
     summary = get_ai_market_summary()
     if not summary: return
-    now_et   = datetime.now(pytz.timezone("America/New_York"))
-    time_str = now_et.strftime("%-I:%M %p ET")
+    now_et  = datetime.now(pytz.timezone("America/New_York"))
+    t_str   = now_et.strftime("%-I:%M %p ET")
     st.markdown(
-        f'<div style="background:#080d08;border-left:4px solid #00e676;'
-        f'border-bottom:1px solid #1e1e1e;padding:7px 16px;'
-        f'display:flex;align-items:center;gap:14px;">'
-        f'<span style="color:#00e676;font-size:9px;font-weight:700;'
-        f'letter-spacing:1.5px;flex-shrink:0;">AI SUMMARY</span>'
-        f'<span style="color:#e8e8e8;font-size:13px;font-weight:400;flex:1;">{summary}</span>'
-        f'<span style="color:#505050;font-size:10px;flex-shrink:0;">Updated {time_str}</span>'
+        f'<div class="ai-bar">'
+        f'<span class="ai-tag">AI</span>'
+        f'<span style="color:#ccc;font-size:13px;font-weight:400;flex:1;line-height:1.4;">'
+        f'{summary}</span>'
+        f'<span style="color:#333;font-size:10px;flex-shrink:0;">{t_str}</span>'
         f'</div>', unsafe_allow_html=True)
 
 summary_bar()
 
 # =============================================================================
-# TOP ROW — indices + clock (60 s for clock accuracy)
+# TOP ROW — indices + clock (60s)
 # =============================================================================
 @st.fragment(run_every=60)
 def top_row():
     market  = get_market_status() or {}
     indices = get_indices_data()  or {}
-
-    # #11: always re-sync mode before rendering
     sync_mode()
     MODE = get_mode(); KEY = mk(MODE)
-
     now_et   = datetime.now(pytz.timezone("America/New_York"))
     time_str = now_et.strftime("%-I:%M %p").lower()
     us_hol   = get_holiday_state("us")
-    tsx_hol  = get_holiday_state("tsx")
 
-    # Futures override for S&P, NASDAQ, Russell during 6:30–9:30am
-    futures      = get_futures_data() if is_futures_window() else {}
-    FUTURES_MAP  = {
-        "S&P 500":  "S&P FUT",
-        "NASDAQ":   "NQ FUT",
-        "SMALL-CAP":"RUSSELL FUT",
-    }
+    futures     = get_futures_data() if is_futures_window() else {}
+    FUTURES_MAP = {"S&P 500":"S&P FUT","NASDAQ":"NQ FUT","SMALL-CAP":"RUSSELL FUT"}
 
     idx_cells = ""
     for name, d in indices.items():
@@ -554,18 +535,16 @@ def top_row():
         fut     = futures.get(fut_key) if fut_key else None
 
         if fut and fut.get("price"):
-            # Show futures price and overnight change
-            pct    = fut.get("pct_1d")
+            pct = fut.get("pct_1d")
             colour = cl(pct); arrow = ar(pct)
             display = fpc(pct) if pct is not None else "—"
-            sub     = f'${fp(fut["price"])} <span style="font-size:9px;color:#ffd54f;letter-spacing:1px;font-weight:600;">FUT</span>'
-            sub_style = "color:#c8c8c8;"
             idx_cells += (
-                f'<div class="idx-cell" style="border-top:2px solid #ffd54f20;">'
+                f'<div class="idx-cell" style="border-top:1px solid rgba(255,213,79,.15);">'
                 f'<div class="idx-lbl" style="color:#ffd54f;">{name}</div>'
                 f'<div class="idx-pct {colour}">{arrow}{display}</div>'
-                f'<div class="idx-px" style="{sub_style}">{sub}</div>'
-                f'</div>')
+                f'<div class="idx-px">${fp(fut["price"])} '
+                f'<span style="color:#ffd54f;font-size:9px;font-weight:600;letter-spacing:1px;">FUT</span>'
+                f'</div></div>')
         else:
             raw   = d.get(KEY)
             atype = "tsx" if name == "TSX" else "us"
@@ -574,7 +553,7 @@ def top_row():
             else:
                 colour, arrow, display, is_hol = cl(raw), ar(raw), fpc(raw,2), False
             sub       = "Holiday" if is_hol else f"${fp(d.get('price'))}"
-            sub_style = "color:#505050;" if is_hol else "color:#c8c8c8;"
+            sub_style = "color:#333;" if is_hol else ""
             idx_cells += (
                 f'<div class="idx-cell">'
                 f'<div class="idx-lbl">{name}</div>'
@@ -586,93 +565,86 @@ def top_row():
     if us_hol:
         mkt_cls, mkt_col = "mkt-closed", "gld"
         from datetime import date as _date
-        import pytz as _pytz
-        _today = datetime.now(_pytz.timezone("America/New_York")).date()
-        _hol_names = {
-            "Memorial Day":  lambda d: d.month==5  and d.weekday()==0 and 25<=d.day<=31,
-            "Independence Day": lambda d: d.month==7 and d.day in (3,4,5),
-            "Labor Day":     lambda d: d.month==9  and d.weekday()==0 and 1<=d.day<=7,
-            "Thanksgiving":  lambda d: d.month==11 and d.weekday()==3 and 22<=d.day<=28,
-            "Christmas":     lambda d: d.month==12 and d.day in (24,25,26),
-            "New Year":      lambda d: d.month==1  and d.day in (1,2),
-            "MLK Day":       lambda d: d.month==1  and d.weekday()==0 and 15<=d.day<=21,
-            "Presidents Day":lambda d: d.month==2  and d.weekday()==0 and 15<=d.day<=21,
-            "Good Friday":   lambda d: d.month in (3,4) and d.weekday()==4,
-            "Juneteenth":    lambda d: d.month==6  and d.day in (18,19,20),
+        _today = datetime.now(pytz.timezone("America/New_York")).date()
+        _names = {
+            "Memorial Day":   lambda d: d.month==5  and d.weekday()==0 and 25<=d.day<=31,
+            "Independence Day":lambda d: d.month==7 and d.day in (3,4,5),
+            "Labor Day":      lambda d: d.month==9  and d.weekday()==0 and 1<=d.day<=7,
+            "Thanksgiving":   lambda d: d.month==11 and d.weekday()==3 and 22<=d.day<=28,
+            "Christmas":      lambda d: d.month==12 and d.day in (24,25,26),
+            "New Year":       lambda d: d.month==1  and d.day in (1,2),
+            "MLK Day":        lambda d: d.month==1  and d.weekday()==0 and 15<=d.day<=21,
+            "Presidents Day": lambda d: d.month==2  and d.weekday()==0 and 15<=d.day<=21,
+            "Good Friday":    lambda d: d.month in (3,4) and d.weekday()==4,
+            "Juneteenth":     lambda d: d.month==6  and d.day in (18,19,20),
         }
-        _name = next((n for n,fn in _hol_names.items() if fn(_today)), "Market Holiday")
+        _name = next((n for n,fn in _names.items() if fn(_today)), "Market Holiday")
         mkt_stxt = f"🇺🇸 {_name.upper()}"
     elif session == "open":
-        mkt_cls, mkt_stxt, mkt_col = "mkt-open",   "MARKET: OPEN",   "pos"
+        mkt_cls, mkt_stxt, mkt_col = "mkt-open",   "MARKET OPEN",    "pos"
     elif session == "pre":
         mkt_cls, mkt_stxt, mkt_col = "mkt-pre",    "PRE-MARKET",     "gld"
     elif session == "after":
         mkt_cls, mkt_stxt, mkt_col = "mkt-after",  "AFTER HOURS",    "gld"
     else:
-        mkt_cls, mkt_stxt, mkt_col = "mkt-closed", "MARKET: CLOSED", "neg"
+        mkt_cls, mkt_stxt, mkt_col = "mkt-closed", "MARKET CLOSED",  "neg"
 
-    mode_cls  = {"1D":"mode-1d","1M":"mode-1m","YTD":"mode-ytd"}[MODE]
-    mode_desc = {"1D":"1 DAY","1M":"1 MONTH","YTD":"YEAR TO DATE"}[MODE]
+    mode_pill = {"1D":"mode-1d","1M":"mode-1m","YTD":"mode-ytd"}[MODE]
+    mode_desc = {"1D":"1 Day","1M":"1 Month","YTD":"Year to Date"}[MODE]
 
     st.markdown(
         f'<div class="idx-row">{idx_cells}'
         f'<div class="clock-cell">'
         f'<div class="clock-time">{time_str}</div>'
-        f'<div class="clock-sub">NEW YORK · ET</div></div>'
+        f'<div class="clock-sub">New York · ET</div></div>'
         f'<div class="mkt-cell"><div class="{mkt_cls}">'
         f'<div class="mkt-s {mkt_col}">{mkt_stxt}</div>'
         f'<div class="mkt-cd">{market.get("countdown","")}</div>'
         f'</div></div></div>'
         f'<div class="mode-bar">'
-        f'<span class="mode-label">DISPLAY MODE</span>'
-        f'<span class="{mode_cls}">{MODE}</span>'
-        f'<span style="font-size:13px;color:#505050;margin-left:4px;font-weight:400;">'
-        f'— {mode_desc}</span>'
+        f'<span class="mode-label">Viewing</span>'
+        f'<span class="mode-pill {mode_pill}">{MODE}</span>'
+        f'<span class="mode-desc">{mode_desc}</span>'
         f'</div>', unsafe_allow_html=True)
 
 top_row()
 
 # =============================================================================
-# ROW 2 — MCI | PORTFOLIO   (both 5-min, read shared MODE)
+# ROW 2 — MCI | PORTFOLIO
 # =============================================================================
 col_mci, col_port = st.columns([1, 3], gap="small")
 
 with col_mci:
-    @st.fragment(run_every=300)
+    @st.fragment(run_every=120)
     def mci_panel():
-        vol    = get_volatility_data()         or {}
-        mci    = get_market_confidence_index() or {}
-        score  = mci.get("score", 0)
-        mlabel = mci.get("label", "—")
-        vc     = vol.get("vix_current", 0)
-        vma    = vol.get("vix_30dma", 0)
-        facts  = mci.get("factors", {})
-        gc = ("#00e676" if score>=75 else "#ffd54f" if score>=55
-              else "#ff9800" if score>=35 else "#ff1744")
+        vol   = get_volatility_data()         or {}
+        mci   = get_market_confidence_index() or {}
+        score = mci.get("score", 0)
+        mlabel= mci.get("label", "—")
+        vc    = vol.get("vix_current", 0)
+        vma   = vol.get("vix_30dma", 0)
+        facts = mci.get("factors", {})
+        gc    = ("#00e676" if score>=75 else "#ffd54f" if score>=55
+                 else "#ff9800" if score>=35 else "#ff1744")
         diff    = vc - vma
-        vix_col = "#00e676" if diff<-1.0 else "#ff1744" if diff>1.0 else "#ffffff"
-
+        vix_col = "#00e676" if diff<-1 else "#ff1744" if diff>1 else "#fff"
         fbars = "".join(
-            f'<div class="fb-row">'
-            f'<div class="fb-top"><span>{fn}</span>'
-            f'<span style="color:#ccc">{fv:.0f}</span></div>'
-            f'<div class="fb-bg"><div class="fb-fill" '
-            f'style="background:{gc};width:{fv:.0f}%;"></div></div></div>'
-            for fn, fv in facts.items())
-
+            f'<div class="fb-row"><div class="fb-top"><span>{fn}</span>'
+            f'<span style="color:#888">{fv:.0f}</span></div>'
+            f'<div class="fb-bg"><div class="fb-fill" style="background:{gc};width:{fv:.0f}%;"></div>'
+            f'</div></div>' for fn,fv in facts.items())
         st.markdown(
-            f'<div class="card" style="border-right:2px solid #1e1e1e;">'
+            f'<div class="card" style="border-right:1px solid #111;">'
             f'<div class="card-hdr">Market Confidence</div>'
             f'<div class="mci-num" style="color:{gc};">{score:.0f}</div>'
             f'<div class="mci-lbl" style="color:{gc};">{mlabel}</div>'
             f'<div class="vix-duo">'
             f'<div class="vix-blk"><div class="vix-l">VIX</div>'
             f'<div class="vix-v" style="color:{vix_col};">{fp(vc)}</div></div>'
-            f'<div style="width:1px;background:#1a1a1a;"></div>'
-            f'<div class="vix-blk"><div class="vix-l">VIX 30DMA</div>'
-            f'<div class="vix-v" style="color:#c0c0c0;">{fp(vma)}</div></div>'
-            f'</div>'
-            f'<div class="fbar">{fbars}</div></div>',
+            f'<div style="width:1px;background:#111;"></div>'
+            f'<div class="vix-blk"><div class="vix-l">30 DMA</div>'
+            f'<div class="vix-v" style="color:#555;">{fp(vma)}</div></div>'
+            f'</div><div class="fbar">{fbars}</div></div>',
             unsafe_allow_html=True)
     mci_panel()
 
@@ -681,45 +653,37 @@ with col_port:
     def portfolio_panel():
         sync_mode()
         MODE = get_mode(); KEY = mk(MODE)
-        port   = get_portfolio_data() or {}
-        assets = port.get("assets", {})
-        pf     = port.get("portfolio", {})
-        xeqt   = assets.get("XEQT", {})
-        btc    = assets.get("BTC", {})
-        beta   = pf.get("beta")
-        # #10: BTC/XEQT correlation instead of portfolio/SPY
-        corr   = pf.get("btc_xeqt_corr")
-        alpha  = pf.get("alpha_bps")
-        ret    = pf.get("return_ytd") if MODE=="YTD" else pf.get("return_1d")
+        port  = get_portfolio_data() or {}
+        assets= port.get("assets", {})
+        pf    = port.get("portfolio", {})
+        xeqt  = assets.get("XEQT", {})
+        btc   = assets.get("BTC", {})
+        beta  = pf.get("beta")
+        corr  = pf.get("btc_xeqt_corr")
+        alpha = pf.get("alpha_bps")
+        ret   = pf.get("return_ytd") if MODE=="YTD" else pf.get("return_1d")
 
         raw_x = xeqt.get(KEY); raw_b = btc.get(KEY)
         if KEY == "pct_1d":
-            xc, xa, xd, x_hol = fmt_1d_with_holiday(raw_x, "tsx")
-            bc, ba, bd, _      = fmt_1d_with_holiday(raw_b, "btc")
-            if x_hol or in_reset_window():
-                rc, ra, rd = "t0", "", "+0.00%"
-            else:
-                rc, ra, rd = cl(ret), ar(ret), fpc(ret)
+            xc,xa,xd,x_hol = fmt_1d_with_holiday(raw_x,"tsx")
+            bc,ba,bd,_     = fmt_1d_with_holiday(raw_b,"btc")
+            if x_hol or in_reset_window(): rc,ra,rd = "t0","","+0.00%"
+            else: rc,ra,rd = cl(ret),ar(ret),fpc(ret)
         else:
-            xc, xa, xd = cl(raw_x), ar(raw_x), fpc(raw_x)
-            bc, ba, bd = cl(raw_b), ar(raw_b), fpc(raw_b)
-            rc, ra, rd = cl(ret), ar(ret), fpc(ret)
+            xc,xa,xd = cl(raw_x),ar(raw_x),fpc(raw_x)
+            bc,ba,bd = cl(raw_b),ar(raw_b),fpc(raw_b)
+            rc,ra,rd = cl(ret),ar(ret),fpc(ret)
             x_hol = False
 
-        # ATH/DMA price colouring
-        xeqt_chart = get_chart_data(PORTFOLIO["XEQT"]["ticker"]) or {}
-        btc_chart  = get_chart_data(PORTFOLIO["BTC"]["ticker"])  or {}
-        def last_val(lst): vals=[v for v in (lst or []) if v is not None]; return vals[-1] if vals else None
-        def ath_val(lst):  vals=[v for v in (lst or []) if v is not None]; return max(vals) if vals else None
+        xc2  = get_chart_data(PORTFOLIO["XEQT"]["ticker"]) or {}
+        bc2  = get_chart_data(PORTFOLIO["BTC"]["ticker"])  or {}
+        def lv(lst): v=[x for x in (lst or []) if x]; return v[-1] if v else None
+        def av(lst): v=[x for x in (lst or []) if x]; return max(v) if v else None
         xeqt_px   = xeqt.get("price")
-        xeqt_pcol = price_colour(xeqt_px, last_val(xeqt_chart.get("sma50")),
-                                 last_val(xeqt_chart.get("sma200")), ath_val(xeqt_chart.get("closes")))
         btc_px    = btc.get("price")
-        btc_pcol  = price_colour(btc_px,  last_val(btc_chart.get("sma50")),
-                                 last_val(btc_chart.get("sma200")),  ath_val(btc_chart.get("closes")))
+        xeqt_pcol = price_colour(xeqt_px,lv(xc2.get("sma50")),lv(xc2.get("sma200")),av(xc2.get("closes")))
+        btc_pcol  = price_colour(btc_px, lv(bc2.get("sma50")),lv(bc2.get("sma200")),av(bc2.get("closes")))
 
-        # #10: label says BTC/XEQT correlation
-        corr_display = f"{corr:.3f}" if corr is not None else "—"
         stats = (
             f'<div class="stats-row">'
             f'<div class="stat-box"><div class="stat-lbl">Return ({MODE})</div>'
@@ -727,12 +691,11 @@ with col_port:
             f'<div class="stat-box"><div class="stat-lbl">Beta vs SPY</div>'
             f'<div class="stat-val t0">{f"{beta:.2f}" if beta else "—"}</div></div>'
             f'<div class="stat-box"><div class="stat-lbl">IBIT/XEQT Corr</div>'
-            f'<div class="stat-val t0">{corr_display}</div></div>'
+            f'<div class="stat-val t0">{f"{corr:.3f}" if corr is not None else "—"}</div></div>'
             f'<div class="stat-box"><div class="stat-lbl">Alpha vs SPY</div>'
             f'<div class="stat-val {cl(alpha)}">'
             f'{f"{alpha:+.0f} bps" if alpha is not None else "—"}</div></div>'
             f'</div>')
-
         table = (
             f'<div class="pt-hd" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div>Ticker</div><div>Price</div><div>Change ({MODE})</div>'
@@ -743,33 +706,31 @@ with col_port:
             f'<div class="pt-ch {xc}">{xa}{xd}</div>'
             f'<div style="text-align:right;">'
             f'<div class="pt-ret {rc}">{ra}{rd}</div>'
-            f'<div class="pt-wt">{"TSX HOLIDAY" if x_hol else "BLENDED 80/20"}</div>'
-            f'</div></div>'
+            f'<div class="pt-wt">{"TSX HOLIDAY" if x_hol else "Blended 80/20"}</div></div></div>'
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">BTC</div>'
             f'<div class="pt-px" style="color:{btc_pcol};">${fp(btc_px,0)}</div>'
             f'<div class="pt-ch {bc}">{ba}{bd}</div>'
             f'<div style="text-align:right;">'
-            f'<div class="pt-wt" style="margin-top:18px;">20% WEIGHT · 24/7</div>'
+            f'<div class="pt-wt" style="margin-top:18px;">20% Weight · 24/7</div>'
             f'</div></div></div>')
-
         st.markdown(
             f'<div class="card"><div class="card-hdr">'
             f'<span>Portfolio · 80% XEQT / 20% BTC</span>{badge(MODE)}</div>'
             f'{stats}{table}</div>', unsafe_allow_html=True)
     portfolio_panel()
 
-st.markdown('<div style="height:2px;background:#1e1e1e;"></div>', unsafe_allow_html=True)
+st.markdown('<div class="div-line"></div>', unsafe_allow_html=True)
 
 # =============================================================================
-# BOTTOM ROW — all 5-min sync
+# BOTTOM ROW
 # =============================================================================
 @st.fragment(run_every=60)
 def bottom_row():
     sync_mode()
     MODE    = get_mode(); KEY = mk(MODE)
-    sectors = get_sectors_data() or {}
-    risk    = get_risk_breadth() or {}
+    sectors = get_sectors_data()  or {}
+    risk    = get_risk_breadth()  or {}
     yields  = get_treasury_yields() or {}
 
     c1, c2, c3, c4 = st.columns([1.6, 1, 1, 1.2], gap="small")
@@ -778,27 +739,23 @@ def bottom_row():
         items = list(sectors.items())
         half  = (len(items)+1)//2
         left  = items[:half]; right = items[half:]
-
         def sec_col(lst):
             rows = []
             for name, d in lst:
-                raw   = d.get(KEY)
+                raw = d.get(KEY)
                 if KEY == "pct_1d":
-                    colour, arrow, display, _ = fmt_1d_with_holiday(raw, "us")
+                    colour,arrow,display,_ = fmt_1d_with_holiday(raw,"us")
                 else:
-                    colour, arrow, display = cl(raw), ar(raw), fpc(raw)
-                # #15: sector name colour by DMA position
-                nc = sector_name_colour(
-                    d.get("price"), d.get("sma50"), d.get("sma200"), d.get("ath"))
+                    colour,arrow,display = cl(raw),ar(raw),fpc(raw)
+                nc = sector_name_colour(d.get("price"),d.get("sma50"),d.get("sma200"),d.get("ath"))
                 rows.append(
                     f'<div class="sec-r">'
                     f'<span class="sec-n" style="color:{nc};">{name}</span>'
                     f'<span class="sec-pct {colour}">{arrow}{display}</span>'
                     f'</div>')
             return "".join(rows)
-
         st.markdown(
-            f'<div class="card" style="border-right:2px solid #1e1e1e;">'
+            f'<div class="card" style="border-right:1px solid #111;">'
             f'<div class="card-hdr"><span>Sectors</span>{badge(MODE)}</div>'
             f'<div class="sec-grid">'
             f'<div>{sec_col(left)}</div><div>{sec_col(right)}</div>'
@@ -811,11 +768,11 @@ def bottom_row():
                "Risk-Leaning":"tag-lean","Neutral":"tag-neu","Defensive":"tag-def",
                "Risk-Off":"tag-off","Panic":"tag-pan"}.get(rrl,"tag-neu")
         st.markdown(
-            f'<div class="card" style="border-right:2px solid #1e1e1e;">'
+            f'<div class="card" style="border-right:1px solid #111;">'
             f'<div class="card-hdr" style="justify-content:center;">Risk Rotation</div>'
             f'<div class="big-wrap">'
-            f'<div class="big-num">{abs(rr):.3f}</div>'
-            f'<div class="big-sub">HYG / LQD · 1 MONTH</div>'
+            f'<div class="big-num {cl(rr)}">{abs(rr):.3f}</div>'
+            f'<div class="big-sub">HYG / LQD · 1 Month</div>'
             f'<div class="big-chg {cl(rr)}">{ar(rr)}&nbsp;{fpc(rr)}</div>'
             f'<div><span class="tag {tag}">{rrl}</span></div>'
             f'</div></div>', unsafe_allow_html=True)
@@ -829,12 +786,12 @@ def bottom_row():
                "Thin Participation":"tag-def","High Concentration":"tag-nar",
                "Severe Divergence":"tag-off","Apex Concentration":"tag-pan"}.get(brl,"tag-neu")
         st.markdown(
-            f'<div class="card" style="border-right:2px solid #1e1e1e;">'
+            f'<div class="card" style="border-right:1px solid #111;">'
             f'<div class="card-hdr" style="justify-content:center;">Breadth</div>'
             f'<div class="big-wrap">'
-            f'<div class="big-num">{br:.3f}</div>'
-            f'<div class="big-sub">RSP / SPY · 10-LEVEL</div>'
-            f'<div class="big-chg t2">EQUAL-WEIGHT vs CAP</div>'
+            f'<div class="big-num t0">{br:.3f}</div>'
+            f'<div class="big-sub">RSP / SPY · 10-Level</div>'
+            f'<div class="big-chg t2">Equal-Weight vs Cap</div>'
             f'<div><span class="tag {tag}">{brl}</span></div>'
             f'</div></div>', unsafe_allow_html=True)
 
@@ -844,18 +801,19 @@ def bottom_row():
             yp  = d.get("yield_pct",0) or 0
             ch1 = d.get("change_1d", 0) or 0
             cc  = "neg" if ch1<0 else "pos" if ch1>0 else "t2"
+            bp  = fpbp(ch1)   # basis points
             y_rows += (
                 f'<div class="y-row">'
                 f'<div class="y-n">{name}</div>'
                 f'<div class="y-r">{yp:.3f}%</div>'
-                f'<div class="y-chg {cc}">{fpc(ch1,3)}</div>'
+                f'<div class="y-bp {cc}">{bp}</div>'
                 f'</div>')
         st.markdown(
             f'<div class="card">'
             f'<div class="card-hdr" style="justify-content:center;">Treasury Yields</div>'
-            f'<div class="y-hd"><div>TENOR</div>'
-            f'<div style="text-align:center;">RATE</div>'
-            f'<div style="text-align:right;">CHG</div></div>'
+            f'<div class="y-hd"><div>Tenor</div>'
+            f'<div style="text-align:center;">Rate</div>'
+            f'<div style="text-align:right;">Change</div></div>'
             f'{y_rows}</div>', unsafe_allow_html=True)
 
 bottom_row()
