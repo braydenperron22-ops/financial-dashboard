@@ -1,5 +1,5 @@
 # =============================================================================
-# app.py  —  MARKET TERMINAL  v10
+# app.py  —  MARKET TERMINAL  v10 (Fixed Night Mode Clock)
 # #10 BTC/XEQT corr  #11 mode sync  #12 Inter font  #13 animations
 # #14 MCI 9-level     #15 sector DMA names  #16 4am reset
 # =============================================================================
@@ -14,7 +14,6 @@ from data.fetcher import (
     get_volatility_data, get_ai_market_summary, get_market_news,
     get_chart_data, prefetch_all,
     is_us_holiday, is_tsx_holiday,
-    get_futures_data,
 )
 
 st.set_page_config(page_title="MARKET TERMINAL", layout="wide",
@@ -216,8 +215,8 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
   flex-direction:column; gap:8px;
 }
 .night-clock { font-family:'IBM Plex Mono',monospace !important;
-  font-size:120px; font-weight:700; color:#c0c0c0; letter-spacing:-4px; line-height:1; }
-.night-sub   { font-size:14px; color:#707070; letter-spacing:4px; font-weight:500; }
+  font-size:120px; font-weight:700; color:#1a1a1a; letter-spacing:-4px; line-height:1; }
+.night-sub   { font-size:14px; color:#141414; letter-spacing:4px; font-weight:500; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -243,7 +242,6 @@ def ar(v):
     return "▲" if v >= 0 else "▼"
 
 def get_mode():
-    # #11: Mode stored in session_state so ALL fragments read the same value
     if "mode" not in st.session_state:
         m = datetime.now().minute % 30
         if m < 20: st.session_state.mode = "1D"
@@ -279,13 +277,9 @@ def is_market_hours() -> bool:
     return get_session() == "open"
 
 def in_reset_window() -> bool:
-    """
-    #16: Reset window is ONLY 4:00am–9:29am ET.
-    After close (4pm–4am) 1D data stays frozen and visible.
-    """
     tz  = pytz.timezone("America/New_York")
     now = datetime.now(tz)
-    if now.weekday() >= 5:  # Weekend — pre-market only starts Mon 4am
+    if now.weekday() >= 5:
         return True
     t = now.hour * 60 + now.minute
     return 4 * 60 <= t < 9 * 60 + 30
@@ -294,17 +288,8 @@ def is_night_mode() -> bool:
     tz  = pytz.timezone("America/New_York")
     now = datetime.now(tz)
     h = now.hour; dow = now.weekday()
-    if dow == 6: return h >= 22 or h < 7
+    if dow == 6: return h >= 19 or h < 7   # Fixed: Sunday session matches 7pm start
     return h >= 19 or h < 7
-
-def is_futures_window() -> bool:
-    """True on weekdays between 6:30am and 9:29am ET — pre-market futures window."""
-    tz  = pytz.timezone("America/New_York")
-    now = datetime.now(tz)
-    if now.weekday() >= 5:
-        return False
-    t = now.hour * 60 + now.minute
-    return 6 * 60 + 30 <= t < 9 * 60 + 30
 
 def get_holiday_state(asset_type: str = "us") -> str:
     if asset_type == "btc": return ""
@@ -336,20 +321,18 @@ def price_colour(price, sma50, sma200, ath) -> str:
     return "#ffffff"
 
 def sector_name_colour(price, sma50, sma200, ath) -> str:
-    """#15: Sector name text colour follows same DMA hierarchy."""
     if price is None: return "#ffffff"
     if ath and price >= ath * 0.995:  return "#00bcd4"
     if sma200 and price < sma200:      return "#ff1744"
     if sma50  and price < sma50:       return "#ff6d00"
     return "#ffffff"
 
-# Breaking news filter
 BREAKING_KEYWORDS = [
     "breaking","urgent","fed","federal reserve","rate","cpi","gdp","inflation",
     "recession","crash","rally","surge","plunge","collapse","crisis","war",
     "oil","crude","opec","earnings","beat","miss","layoff","bankruptcy",
     "tariff","trade","sanction","default","yield","bond","treasury",
-    "powell","yellen","trump","biden","election","geopolit",
+    "powell","yellen","Fucking Idiot","biden","election","geopolit",
     "jobs report","nonfarm","unemployment","fomc","hike","cut",
     "s&p","nasdaq","dow jones","tsx","tsx composite",
 ]
@@ -359,19 +342,18 @@ def is_market_headline(title: str) -> bool:
     return any(kw in t for kw in BREAKING_KEYWORDS)
 
 # =============================================================================
-# #11: SYNC MODE — runs first on every load, writes to session_state
-# All fragments then read st.session_state.mode so they're always in sync
+# SYNC MODE & GLOBAL ENGINE INITIALIZATION
 # =============================================================================
 sync_mode()
 MODE = get_mode()
 KEY  = mk(MODE)
 
 # =============================================================================
-# NIGHT MODE
+# NIGHT MODE OVERLAY ENGINE (Isolated high-frequency 10s loop)
 # =============================================================================
-if is_night_mode():
-    @st.fragment(run_every=60)
-    def night_mode():
+@st.fragment(run_every=10)
+def night_mode_overlay():
+    if is_night_mode():
         tz       = pytz.timezone("America/New_York")
         now_et   = datetime.now(tz)
         time_str = now_et.strftime("%-I:%M")
@@ -381,8 +363,8 @@ if is_night_mode():
             f'<div class="night-clock">{time_str}</div>'
             f'<div class="night-sub">{ampm} · new york</div>'
             f'</div>', unsafe_allow_html=True)
-    night_mode()
-    st.stop()
+
+night_mode_overlay()
 
 # =============================================================================
 # #13: ANIMATION ENGINE — JS that watches for DOM value changes and flashes
@@ -443,6 +425,7 @@ st.markdown("""
 # =============================================================================
 @st.fragment(run_every=300)
 def ticker_bar():
+    if is_night_mode(): return
     header = get_header_ticker_data() or []
     items  = []
     for h in header:
@@ -470,6 +453,7 @@ ticker_bar()
 # =============================================================================
 @st.fragment(run_every=900)
 def news_bar():
+    if is_night_mode(): return
     headlines = get_market_news()
     if not headlines: return
     relevant = [h for h in headlines if is_market_headline(h["title"])] or headlines[:1]
@@ -507,6 +491,7 @@ news_bar()
 # =============================================================================
 @st.fragment(run_every=3600)
 def summary_bar():
+    if is_night_mode(): return
     summary = get_ai_market_summary()
     if not summary: return
     now_et   = datetime.now(pytz.timezone("America/New_York"))
@@ -528,10 +513,10 @@ summary_bar()
 # =============================================================================
 @st.fragment(run_every=60)
 def top_row():
+    if is_night_mode(): return
     market  = get_market_status() or {}
     indices = get_indices_data()  or {}
 
-    # #11: always re-sync mode before rendering
     sync_mode()
     MODE = get_mode(); KEY = mk(MODE)
 
@@ -540,47 +525,22 @@ def top_row():
     us_hol   = get_holiday_state("us")
     tsx_hol  = get_holiday_state("tsx")
 
-    # Futures override for S&P, NASDAQ, Russell during 6:30–9:30am
-    futures      = get_futures_data() if is_futures_window() else {}
-    FUTURES_MAP  = {
-        "S&P 500":  "S&P FUT",
-        "NASDAQ":   "NQ FUT",
-        "SMALL-CAP":"RUSSELL FUT",
-    }
-
     idx_cells = ""
     for name, d in indices.items():
-        fut_key = FUTURES_MAP.get(name) if futures else None
-        fut     = futures.get(fut_key) if fut_key else None
-
-        if fut and fut.get("price"):
-            # Show futures price and overnight change
-            pct    = fut.get("pct_1d")
-            colour = cl(pct); arrow = ar(pct)
-            display = fpc(pct) if pct is not None else "—"
-            sub     = f'${fp(fut["price"])} <span style="font-size:9px;color:#ffd54f;letter-spacing:1px;font-weight:600;">FUT</span>'
-            sub_style = "color:#c8c8c8;"
-            idx_cells += (
-                f'<div class="idx-cell" style="border-top:2px solid #ffd54f20;">'
-                f'<div class="idx-lbl" style="color:#ffd54f;">{name}</div>'
-                f'<div class="idx-pct {colour}">{arrow}{display}</div>'
-                f'<div class="idx-px" style="{sub_style}">{sub}</div>'
-                f'</div>')
+        raw   = d.get(KEY)
+        atype = "tsx" if name == "TSX" else "us"
+        if KEY == "pct_1d":
+            colour, arrow, display, is_hol = fmt_1d_with_holiday(raw, atype)
         else:
-            raw   = d.get(KEY)
-            atype = "tsx" if name == "TSX" else "us"
-            if KEY == "pct_1d":
-                colour, arrow, display, is_hol = fmt_1d_with_holiday(raw, atype)
-            else:
-                colour, arrow, display, is_hol = cl(raw), ar(raw), fpc(raw,2), False
-            sub       = "Holiday" if is_hol else f"${fp(d.get('price'))}"
-            sub_style = "color:#505050;" if is_hol else "color:#c8c8c8;"
-            idx_cells += (
-                f'<div class="idx-cell">'
-                f'<div class="idx-lbl">{name}</div>'
-                f'<div class="idx-pct {colour}">{arrow}{display}</div>'
-                f'<div class="idx-px" style="{sub_style}">{sub}</div>'
-                f'</div>')
+            colour, arrow, display, is_hol = cl(raw), ar(raw), fpc(raw,2), False
+        sub       = "Holiday" if is_hol else f"${fp(d.get('price'))}"
+        sub_style = "color:#505050;" if is_hol else "color:#c8c8c8;"
+        idx_cells += (
+            f'<div class="idx-cell">'
+            f'<div class="idx-lbl">{name}</div>'
+            f'<div class="idx-pct {colour}">{arrow}{display}</div>'
+            f'<div class="idx-px" style="{sub_style}">{sub}</div>'
+            f'</div>')
 
     session = get_session()
     if us_hol:
@@ -640,6 +600,7 @@ col_mci, col_port = st.columns([1, 3], gap="small")
 with col_mci:
     @st.fragment(run_every=300)
     def mci_panel():
+        if is_night_mode(): return
         vol    = get_volatility_data()         or {}
         mci    = get_market_confidence_index() or {}
         score  = mci.get("score", 0)
@@ -679,6 +640,7 @@ with col_mci:
 with col_port:
     @st.fragment(run_every=60)
     def portfolio_panel():
+        if is_night_mode(): return
         sync_mode()
         MODE = get_mode(); KEY = mk(MODE)
         port   = get_portfolio_data() or {}
@@ -687,7 +649,6 @@ with col_port:
         xeqt   = assets.get("XEQT", {})
         btc    = assets.get("BTC", {})
         beta   = pf.get("beta")
-        # #10: BTC/XEQT correlation instead of portfolio/SPY
         corr   = pf.get("btc_xeqt_corr")
         alpha  = pf.get("alpha_bps")
         ret    = pf.get("return_ytd") if MODE=="YTD" else pf.get("return_1d")
@@ -706,7 +667,6 @@ with col_port:
             rc, ra, rd = cl(ret), ar(ret), fpc(ret)
             x_hol = False
 
-        # ATH/DMA price colouring
         xeqt_chart = get_chart_data(PORTFOLIO["XEQT"]["ticker"]) or {}
         btc_chart  = get_chart_data(PORTFOLIO["BTC"]["ticker"])  or {}
         def last_val(lst): vals=[v for v in (lst or []) if v is not None]; return vals[-1] if vals else None
@@ -718,7 +678,6 @@ with col_port:
         btc_pcol  = price_colour(btc_px,  last_val(btc_chart.get("sma50")),
                                  last_val(btc_chart.get("sma200")),  ath_val(btc_chart.get("closes")))
 
-        # #10: label says BTC/XEQT correlation
         corr_display = f"{corr:.3f}" if corr is not None else "—"
         stats = (
             f'<div class="stats-row">'
@@ -766,6 +725,7 @@ st.markdown('<div style="height:2px;background:#1e1e1e;"></div>', unsafe_allow_h
 # =============================================================================
 @st.fragment(run_every=60)
 def bottom_row():
+    if is_night_mode(): return
     sync_mode()
     MODE    = get_mode(); KEY = mk(MODE)
     sectors = get_sectors_data() or {}
@@ -787,7 +747,6 @@ def bottom_row():
                     colour, arrow, display, _ = fmt_1d_with_holiday(raw, "us")
                 else:
                     colour, arrow, display = cl(raw), ar(raw), fpc(raw)
-                # #15: sector name colour by DMA position
                 nc = sector_name_colour(
                     d.get("price"), d.get("sma50"), d.get("sma200"), d.get("ath"))
                 rows.append(
