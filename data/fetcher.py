@@ -698,10 +698,19 @@ def get_risk_breadth() -> Dict[str, Any]:
         if HYG_TICKER in df.columns and LQD_TICKER in df.columns:
             hyg = df[HYG_TICKER].dropna()
             lqd = df[LQD_TICKER].dropna()
-            risk_pct_1d  = _spread(hyg, lqd, 1)
-            risk_pct_1m  = _spread(hyg, lqd, 30)   # primary (IFS scale)
-            risk_pct_ytd = _spread(hyg, lqd, 365)  # approx YTD via 1y window
-            risk_label   = _risk_label(risk_pct_1m)
+            risk_pct_1d = _spread(hyg, lqd, 1)
+            risk_pct_1m = _spread(hyg, lqd, 30)   # primary (IFS label)
+            risk_label  = _risk_label(risk_pct_1m)
+            # YTD: use first trading day of the year, same method as breadth
+            this_year = str(hyg.index[-1].year)
+            hyg_ytd = hyg[hyg.index >= this_year]
+            lqd_ytd = lqd[lqd.index >= this_year]
+            if len(hyg_ytd) >= 2 and len(lqd_ytd) >= 2:
+                hyg_ytd_ret = (float(hyg_ytd.iloc[-1]) - float(hyg_ytd.iloc[0])) / float(hyg_ytd.iloc[0]) * 100
+                lqd_ytd_ret = (float(lqd_ytd.iloc[-1]) - float(lqd_ytd.iloc[0])) / float(lqd_ytd.iloc[0]) * 100
+                risk_pct_ytd = round(hyg_ytd_ret - lqd_ytd_ret, 3)
+            else:
+                risk_pct_ytd = 0.0
 
         # ── Breadth ratio changes ──────────────────────────────────────────
         breadth_ratio = breadth_1d = breadth_1m = breadth_ytd = None
