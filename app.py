@@ -292,6 +292,21 @@ def is_futures_window():
     t = now.hour * 60 + now.minute
     return 6*60+30 <= t < 9*60+30
 
+def is_futures_active() -> bool:
+    """
+    Equity futures trade Sun 6pm ET → Fri 5pm ET.
+    Closed: Fri 5pm → Sun 6pm ET.
+    Returns True when futures are live.
+    """
+    tz  = pytz.timezone("America/New_York")
+    now = datetime.now(tz)
+    dow = now.weekday()   # 0=Mon … 6=Sun
+    t   = now.hour * 60 + now.minute
+    if dow == 4 and t >= 17 * 60:   return False  # Fri after 5pm
+    if dow == 5:                     return False  # All Saturday
+    if dow == 6 and t < 18 * 60:    return False  # Sun before 6pm
+    return True
+
 def get_holiday_state(asset_type: str = "us") -> str:
     if asset_type == "btc": return ""
     if asset_type == "tsx": return "tsx_holiday" if is_tsx_holiday() else ""
@@ -425,21 +440,44 @@ st.markdown("""<script>
 # =============================================================================
 @st.fragment(run_every=120)
 def ticker_bar():
-    header = get_header_ticker_data() or []
-    items  = []
+    header   = get_header_ticker_data() or []
+    fut_live = is_futures_active()
+    items    = []
+
     for h in header:
-        if h["type"] == "date":
-            items.append(f'<span class="td">{h["label"]}</span>')
-        else:
-            raw  = h.get("pct_1d")
-            is_b = h["label"] in ("BTC-USD","ETH-USD","COIN","MSTR")
-            c,a,d = fmt_1d(raw, is_btc=is_b)
+        if h["type"] == "section":
             items.append(
-                f'<span class="ti">'
-                f'<span class="ti-s">{h["label"]}</span>'
-                f'<span class="ti-p">{fp(h.get("price"))}</span>'
-                f'<span class="ti-c {c}">{a}{d}</span>'
-                f'</span>')
+                f'<span style="display:inline-block;margin:0 18px;'
+                f'font-size:10px;font-weight:700;letter-spacing:2px;'
+                f'color:#ffd54f;background:rgba(255,213,79,.08);'
+                f'padding:2px 10px;border:1px solid rgba(255,213,79,.2);'
+                f'border-radius:2px;vertical-align:middle;">'
+                f'{h["label"]}</span>')
+            continue
+
+        is_fut    = h.get("is_fut", False)
+        is_crypto = h.get("is_crypto", False)
+        raw       = h.get("pct_1d")
+
+        # Futures: zero on weekends / before Sunday 6pm; live otherwise
+        if is_fut:
+            if not fut_live:
+                c, a, d = "t0", "", "+0.00%"
+            else:
+                c, a, d = cl(raw), ar(raw), fpc(raw) if raw is not None else ("t2","","—")
+        elif is_crypto:
+            # Crypto always live
+            c, a, d = cl(raw), ar(raw), fpc(raw) if raw is not None else ("t2","","—")
+        else:
+            c, a, d = fmt_1d(raw)
+
+        items.append(
+            f'<span class="ti">'
+            f'<span class="ti-s">{h["label"]}</span>'
+            f'<span class="ti-p">{fp(h.get("price"))}</span>'
+            f'<span class="ti-c {c}">{a}{d}</span>'
+            f'</span>')
+
     s = "".join(items)
     st.markdown(
         f'<div class="tkr-outer"><div class="tkr-track">{s}{s}</div></div>',

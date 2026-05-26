@@ -44,6 +44,9 @@ from config import (
     CACHE_TTL_SECONDS,
     FETCH_TIMEOUT,
     HEADER_TICKERS,
+    TICKER_SECTIONS,
+    FUTURES_TICKERS,
+    CRYPTO_TICKERS,
     HYG_TICKER,
     IEF_TICKER,
     INDICES,
@@ -809,40 +812,40 @@ def get_header_ticker_data() -> List[Dict[str, Any]]:
         price   : float  — current price (None for date entries)
         pct_1d  : float  — 1-day % change (None for date entries)
     """
-    key = "header_ticker_data"
+    key = "header_ticker_data_v2"
 
     def _fetch():
         df = _download_multi(HEADER_TICKERS, period="5d")
         items = []
-        today_str = datetime.now().strftime("%b %d, %Y")
 
-        for i, ticker in enumerate(HEADER_TICKERS):
-            # Insert date anchor every 5 items (at positions 0, 5, 10 … 55)
-            if i % 5 == 0:
-                items.append({
-                    "type":   "date",
-                    "label":  today_str,
-                    "price":  None,
-                    "pct_1d": None,
-                })
-
-            price = pct_1d = None
-            if ticker in df.columns:
-                series = df[ticker].dropna()
-                if len(series) >= 2:
-                    price  = round(float(series.iloc[-1]), 2)
-                    pct_1d = round((series.iloc[-1] - series.iloc[-2]) / series.iloc[-2] * 100, 2)
-
+        for section_name, tickers in TICKER_SECTIONS.items():
+            # Section label divider
             items.append({
-                "type":   "ticker",
-                "label":  ticker,
-                "price":  price,
-                "pct_1d": pct_1d,
+                "type":   "section",
+                "label":  section_name,
+                "price":  None,
+                "pct_1d": None,
             })
+            for ticker in tickers:
+                price = pct_1d = None
+                if ticker in df.columns:
+                    series = df[ticker].dropna()
+                    if len(series) >= 2:
+                        price  = round(float(series.iloc[-1]), 2)
+                        pct_1d = round(
+                            (series.iloc[-1] - series.iloc[-2]) / series.iloc[-2] * 100, 2
+                        )
+                items.append({
+                    "type":    "ticker",
+                    "label":   ticker,
+                    "price":   price,
+                    "pct_1d":  pct_1d,
+                    "is_fut":  ticker in FUTURES_TICKERS,
+                    "is_crypto": ticker in CRYPTO_TICKERS,
+                })
 
         return items
 
-    # Header data changes intraday; 2-minute TTL is sufficient
     return fetch_with_cache(key, _fetch, ttl=120) or []
 
 

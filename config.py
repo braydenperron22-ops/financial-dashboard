@@ -78,39 +78,46 @@ TREASURY_YIELDS = {
 }
 
 # ---------------------------------------------------------------------------
-# 6. TICKER HEADER (60 SEGMENTS)
-#    The rotating top ticker. Exactly 60 items; the date anchor logic is
-#    handled in the fetcher, not here.
+# 6. TICKER HEADER — organised into named sections
+#    Each section gets a label divider in the tape.
+#    Futures follow their own reset schedule (weekdays never zero,
+#    weekends closed, resume Sunday 6pm ET).
 # ---------------------------------------------------------------------------
-HEADER_TICKERS = [
-    # Mega-cap tech
-    "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA", "AVGO",
-    # Major ETFs
-    "SPY", "QQQ", "IWM", "EFA", "EEM", "GLD", "SLV", "USO",
-    # Crypto proxies
-    "BTC-USD", "ETH-USD", "COIN", "MSTR",
-    # Financials
-    "JPM", "BAC", "GS", "MS", "BRK-B",
-    # Broad economy
-    "XOM", "CVX", "LLY", "UNH", "V", "MA", "WMT", "HD",
-    # Rates / bonds
-    "TLT", "HYG", "IEF", "SHY", "^TNX", "^VIX",
-    # TSX / Canadian
-    "XEQT.TO", "XIU.TO", "ENB.TO", "RY.TO", "TD.TO",
-    # Global
-    "EWJ", "EWZ", "FXI", "INDA",
-    # Commodities
-    "GC=F", "SI=F", "CL=F", "NG=F",
-    # Misc growth
-    "PLTR", "SHOP", "AMD", "INTC",
-    # Placeholder slots (brings total to exactly 60)
-    "^GSPC", "^IXIC", "^RUT", "^GSPTSE",
-]
 
-# Sanity-check: this will raise an error at startup if the count drifts.
-assert len(HEADER_TICKERS) == 60, (
-    f"HEADER_TICKERS must have exactly 60 items, found {len(HEADER_TICKERS)}"
-)
+TICKER_SECTIONS = {
+    "INDEXES": [
+        "^GSPC", "^IXIC", "^RUT", "^GSPTSE",
+        "EFA", "EEM", "^VIX",
+    ],
+    "FUTURES": [
+        "ES=F",   # S&P 500 futures
+        "NQ=F",   # Nasdaq futures
+        "RTY=F",  # Russell 2000 futures
+        "YM=F",   # Dow futures
+        "CL=F",   # Crude Oil
+        "GC=F",   # Gold
+        "SI=F",   # Silver
+        "NG=F",   # Natural Gas
+    ],
+    "CRYPTO": [
+        "BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD",
+        "COIN", "MSTR", "IBIT",
+    ],
+    "MOST ACTIVE": [
+        "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN",
+        "META", "TSLA", "AVGO", "AMD", "PLTR",
+        "JPM", "BAC", "GS", "XOM", "V",
+        "SPY", "QQQ", "IWM", "TLT", "GLD",
+        "SHOP", "LLY", "UNH", "MA", "WMT",
+    ],
+}
+
+# Flat list for any code that still needs it
+HEADER_TICKERS = [t for tickers in TICKER_SECTIONS.values() for t in tickers]
+
+# Tickers that trade around the clock on weekdays — never zero during reset window
+FUTURES_TICKERS = set(TICKER_SECTIONS["FUTURES"])
+CRYPTO_TICKERS  = set(TICKER_SECTIONS["CRYPTO"])
 
 # ---------------------------------------------------------------------------
 # 7. CACHE & REFRESH SETTINGS
