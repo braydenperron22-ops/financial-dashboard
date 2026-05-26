@@ -1226,7 +1226,7 @@ def get_market_news() -> List[Dict[str, Any]]:
         items.sort(key=lambda x: x["age_minutes"])
         return items[:15]
 
-    return fetch_with_cache(key, _fetch, ttl=900) or []
+    return fetch_with_cache(key, _fetch, ttl=300) or []
 
 
 # =============================================================================

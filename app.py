@@ -496,7 +496,7 @@ ticker_bar()
 # =============================================================================
 # NEWS
 # =============================================================================
-@st.fragment(run_every=900)
+@st.fragment(run_every=300)
 def news_bar():
     headlines = get_market_news()
     if not headlines: return
