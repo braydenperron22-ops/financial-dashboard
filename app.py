@@ -20,7 +20,7 @@ st.set_page_config(page_title="MARKET TERMINAL", layout="wide",
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Serif+Text:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
 
 #MainMenu,footer,header,[data-testid="stToolbar"],
 [data-testid="stHeader"],.stDeployButton { display:none !important; }
@@ -41,7 +41,7 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 .stMarkdown        { margin:0 !important; padding:0 !important; }
 ::-webkit-scrollbar { display:none; }
 
-* { font-family:'DM Serif Display','DM Serif Text',Georgia,'Times New Roman',serif !important; box-sizing:border-box; }
+* { font-family:'Roboto',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif !important; box-sizing:border-box; }
 /* All elements use DM Serif Display via universal rule above */
 
 /* TICKER */
@@ -209,7 +209,7 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 .night-screen { position:fixed; top:0; left:0; width:100vw; height:100vh;
   background:#000; z-index:9999; display:flex; align-items:center;
   justify-content:center; flex-direction:column; gap:8px; }
-.night-clock { font-family:'DM Serif Display',serif !important;
+.night-clock { font-family:'Roboto',sans-serif !important;
   font-size:120px; font-weight:700; color:#c0c0c0; letter-spacing:-4px; line-height:1; }
 .night-sub   { font-size:16px; color:#888888; letter-spacing:4px; font-weight:500; }
 </style>
