@@ -809,27 +809,47 @@ def get_most_active_tickers(count: int = 25) -> List[str]:
     """
     key = "most_active_tickers_v2"
 
-    # Universe of liquid US stocks — broad enough to catch real movers
+    # Universe of 200 liquid US stocks — no ETFs, pure equities
     UNIVERSE = [
-        "AAPL","MSFT","NVDA","AMZN","TSLA","META","GOOGL","AVGO","AMD","PLTR",
-        "JPM","BAC","GS","MS","WFC","C","BRK-B","V","MA","PYPL",
-        "XOM","CVX","OXY","SLB","MPC","VLO",
-        "LLY","UNH","JNJ","PFE","ABBV","MRK","BMY",
-        "NFLX","DIS","CMCSA","SNAP","UBER","LYFT","ABNB",
-        "WMT","AMZN","COST","TGT","HD","LOW",
-        "SPY","QQQ","IWM","DIA","TQQQ","SOXL","SQQQ",
-        "COIN","MSTR","RIOT","MARA","HUT","CLSK",
-        "SHOP","CRM","ORCL","IBM","INTC","QCOM","MU","AMAT",
-        "F","GM","RIVN","LCID","NIO","SOFI","HOOD","RBLX",
-        "AMC","GME","BBBY","BBAI","SMCI","ARM","SNOW",
+        # Mega-cap tech
+        "AAPL","MSFT","NVDA","AMZN","META","GOOGL","GOOG","TSLA","AVGO","ORCL",
+        "AMD","INTC","QCOM","MU","AMAT","LRCX","KLAC","MRVL","TXN","ADI",
+        "ARM","SMCI","SNOW","PLTR","SHOP","CRM","NOW","ADBE","INTU","PANW",
+        "CRWD","ZS","OKTA","DDOG","GTLB","NET","MDB","ANET","DELL","HPQ",
+        # Financials
+        "JPM","BAC","GS","MS","WFC","C","BRK-B","V","MA","AXP",
+        "PYPL","SQ","HOOD","SOFI","COIN","MSTR","SCHW","BX","KKR","APO",
+        # Healthcare & biotech
+        "LLY","UNH","JNJ","PFE","ABBV","MRK","BMY","AMGN","GILD","BIIB",
+        "MRNA","BNTX","REGN","VRTX","ISRG","MDT","SYK","ABT","TMO","DHR",
+        # Energy
+        "XOM","CVX","OXY","SLB","MPC","VLO","PSX","COP","EOG","PXD",
+        "HAL","BKR","DVN","FANG","MRO","APA","HES","KMI","WMB","OKE",
+        # Consumer
+        "WMT","COST","TGT","HD","LOW","NKE","MCD","SBUX","CMG","YUM",
+        "DIS","NFLX","CMCSA","PARA","WBD","SNAP","PINS","RBLX","EA","TTWO",
+        # Industrials & autos
+        "CAT","DE","BA","LMT","RTX","GE","HON","MMM","UPS","FDX",
+        "F","GM","RIVN","LCID","NIO","XPEV","LI","TSLA","TM","HMC",
+        # Crypto-adjacent equities
+        "RIOT","MARA","HUT","CLSK","BTBT","CIFR","HIVE","BTDR","CORZ","WULF",
+        # High-vol / momentum / meme
+        "AMC","GME","BBAI","SOUN","PLUG","FCEL","BLNK","CHPT","LAZR","LIDR",
+        # Telecom & media
+        "T","VZ","TMUS","NFLX","GOOGL","META","TWTR","UBER","LYFT","ABNB",
+        # Recent IPOs & high-growth
+        "ARM","KVYO","CART","ASTS","LUNR","RDW","ACHR","JOBY","LILM","RLAY",
     ]
+    # Deduplicate preserving order
+    seen = set()
+    UNIVERSE = [t for t in UNIVERSE if not (t in seen or seen.add(t))]
 
     FALLBACK = [
         "AAPL","MSFT","NVDA","AMZN","TSLA",
         "META","GOOGL","AMD","PLTR","AVGO",
         "JPM","BAC","XOM","V","MA",
-        "SPY","QQQ","COIN","MSTR","LLY",
-        "UNH","HD","WMT","GS","SHOP",
+        "COIN","MSTR","LLY","GS","SHOP",
+        "UNH","HD","WMT","NFLX","ARM",
     ]
 
     def _fetch():
