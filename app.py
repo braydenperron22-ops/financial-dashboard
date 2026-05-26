@@ -759,7 +759,7 @@ def bottom_row():
         period_lbl = {"1D":"TODAY","1M":"1 MONTH","YTD":"YEAR TO DATE"}[MODE]
         # Convert ratio change to percentage for readability
         br_chg_pct = round(br_chg * 100, 3) if br_chg is not None else None
-        br_chg_str = (f"{br_chg_pct:+.3f}%" if br_chg_pct is not None else "—")
+        br_chg_str = (f"{br_chg_pct:+.2f}%" if br_chg_pct is not None else "—")
         br_chg_cl  = cl(br_chg) if br_chg is not None else "t2"
         br_chg_ar  = ar(br_chg) if br_chg is not None else ""
         st.markdown(
@@ -767,7 +767,7 @@ def bottom_row():
             f'<div class="card-hdr" style="justify-content:center;">'
             f'Breadth&nbsp;{badge(MODE)}</div>'
             f'<div class="big-wrap">'
-            f'<div class="big-num t0">{br:.4f}</div>'
+            f'<div class="big-num t0">{br:.3f}</div>'
             f'<div class="big-sub">RSP / SPY · 10-LEVEL</div>'
             f'<div class="big-chg {br_chg_cl}" style="font-size:17px;">{br_chg_ar}&nbsp;{br_chg_str}</div>'
             f'<div style="font-size:9px;color:#555;letter-spacing:1.5px;margin-top:2px;">{period_lbl} CHANGE</div>'
