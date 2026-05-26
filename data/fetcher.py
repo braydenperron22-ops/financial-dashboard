@@ -799,11 +799,30 @@ def get_treasury_yields() -> Dict[str, Any]:
 
 def get_most_active_tickers(count: int = 25) -> List[str]:
     """
-    Fetch today's most active US stocks by volume from Yahoo Finance's
-    predefined screener. Falls back to a static list if the API is unavailable.
-    Cached for 60 minutes — the list doesn't change mid-day.
+    Find the most active US stocks by dollar volume using yfinance.
+
+    Downloads a universe of ~80 liquid, high-volume names, fetches today's
+    volume, ranks them by dollar volume (price × volume), and returns the
+    top `count`. Falls back to a static list if data is unavailable.
+
+    Cached for 60 minutes — plenty fresh for a ticker tape.
     """
-    key = "most_active_tickers"
+    key = "most_active_tickers_v2"
+
+    # Universe of liquid US stocks — broad enough to catch real movers
+    UNIVERSE = [
+        "AAPL","MSFT","NVDA","AMZN","TSLA","META","GOOGL","AVGO","AMD","PLTR",
+        "JPM","BAC","GS","MS","WFC","C","BRK-B","V","MA","PYPL",
+        "XOM","CVX","OXY","SLB","MPC","VLO",
+        "LLY","UNH","JNJ","PFE","ABBV","MRK","BMY",
+        "NFLX","DIS","CMCSA","SNAP","UBER","LYFT","ABNB",
+        "WMT","AMZN","COST","TGT","HD","LOW",
+        "SPY","QQQ","IWM","DIA","TQQQ","SOXL","SQQQ",
+        "COIN","MSTR","RIOT","MARA","HUT","CLSK",
+        "SHOP","CRM","ORCL","IBM","INTC","QCOM","MU","AMAT",
+        "F","GM","RIVN","LCID","NIO","SOFI","HOOD","RBLX",
+        "AMC","GME","BBBY","BBAI","SMCI","ARM","SNOW",
+    ]
 
     FALLBACK = [
         "AAPL","MSFT","NVDA","AMZN","TSLA",
@@ -815,35 +834,36 @@ def get_most_active_tickers(count: int = 25) -> List[str]:
 
     def _fetch():
         try:
-            import requests as _req
-            url = (
-                "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved"
-                "?formatted=false&lang=en-US&region=US"
-                f"&scrIds=most_actives&count={count}"
+            df = yf.download(
+                UNIVERSE,
+                period="2d",
+                auto_adjust=True,
+                progress=False,
+                timeout=FETCH_TIMEOUT,
+                threads=True,
             )
-            headers = {
-                "User-Agent": (
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                    "AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36"
-                )
-            }
-            resp = _req.get(url, headers=headers, timeout=10)
-            if resp.status_code != 200:
-                logger.warning("Most active screener returned %s", resp.status_code)
+            if df.empty:
                 return FALLBACK
 
-            data    = resp.json()
-            quotes  = (data.get("finance", {})
-                           .get("result", [{}])[0]
-                           .get("quotes", []))
-            tickers = [q["symbol"] for q in quotes if "symbol" in q]
-            if len(tickers) >= 5:
-                logger.info("Most active: fetched %d tickers", len(tickers))
-                return tickers[:count]
+            # Extract close and volume
+            if isinstance(df.columns, pd.MultiIndex):
+                closes  = df["Close"].iloc[-1]
+                volumes = df["Volume"].iloc[-1]
+            else:
+                return FALLBACK
+
+            # Dollar volume = price × shares traded
+            dollar_vol = (closes * volumes).dropna()
+            ranked     = dollar_vol.sort_values(ascending=False)
+            result     = [str(t) for t in ranked.index[:count]]
+
+            if len(result) >= 5:
+                logger.info("Most active: ranked %d tickers by dollar volume", len(result))
+                return result
             return FALLBACK
 
         except Exception as exc:
-            logger.warning("Most active fetch failed: %s", exc)
+            logger.warning("Most active ranking failed: %s", exc)
             return FALLBACK
 
     return fetch_with_cache(key, _fetch, ttl=3600) or FALLBACK
