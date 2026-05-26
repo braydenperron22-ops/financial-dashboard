@@ -71,7 +71,7 @@ SPY_TICKER        = "SPY"   # Cap-weight S&P 500
 #    Yahoo Finance carries these as price series.
 # ---------------------------------------------------------------------------
 TREASURY_YIELDS = {
-    "Fed Rate (13W)": "^IRX",
+    "2Y":             "^UST2Y",
     "5Y":             "^FVX",
     "10Y":            "^TNX",
     "30Y":            "^TYX",
