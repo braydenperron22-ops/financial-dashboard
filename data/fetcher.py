@@ -642,55 +642,72 @@ def get_risk_breadth() -> Dict[str, Any]:
         if spread > -2.5:   return "Risk-Off"
         return "Panic"
 
+    def _spread(hyg: "pd.Series", lqd: "pd.Series", days: int) -> float:
+        """HYG minus LQD return over N days."""
+        h = _calc_period_return(hyg, days) or 0
+        l = _calc_period_return(lqd, days) or 0
+        return round(h - l, 3)
+
+    def _breadth_label(ratio_val: float) -> str:
+        MIN_FLOOR, MAX_CEILING = 0.27, 0.3933
+        pos = max(0.0, min(0.9999, (ratio_val - MIN_FLOOR) / (MAX_CEILING - MIN_FLOOR)))
+        LABELS = [
+            "Apex Concentration", "Severe Divergence",  "High Concentration",
+            "Thin Participation", "Broadening-Out",     "Neutral Breadth",
+            "Healthy Participation","Risk-On Rotation", "Solid Breadth",
+            "Maximum Breadth",
+        ]
+        return LABELS[int(pos * 10)]
+
     def _fetch():
         tickers = [HYG_TICKER, LQD_TICKER, RSP_TICKER, SPY_TICKER]
-        df = _download_multi(tickers, period="3mo")
+        df = _download_multi(tickers, period="1y")   # need YTD so pull 1y
 
-        # Risk rotation — HYG vs LQD 1-month spread
-        risk_pct   = 0.0
-        risk_label = "Neutral"
+        # ── Risk Rotation spreads ─────────────────────────────────────────
+        risk_pct_1d = risk_pct_1m = risk_pct_ytd = 0.0
+        risk_label  = "Neutral"
         if HYG_TICKER in df.columns and LQD_TICKER in df.columns:
-            hyg_ret  = _calc_period_return(df[HYG_TICKER].dropna(), 30) or 0
-            lqd_ret  = _calc_period_return(df[LQD_TICKER].dropna(), 30) or 0
-            risk_pct = round(hyg_ret - lqd_ret, 3)
-            risk_label = _risk_label(risk_pct)
+            hyg = df[HYG_TICKER].dropna()
+            lqd = df[LQD_TICKER].dropna()
+            risk_pct_1d  = _spread(hyg, lqd, 1)
+            risk_pct_1m  = _spread(hyg, lqd, 30)   # primary (IFS scale)
+            risk_pct_ytd = _spread(hyg, lqd, 365)  # approx YTD via 1y window
+            risk_label   = _risk_label(risk_pct_1m)
 
-        # Breadth — RSP/SPY ratio mapped to 10-level scale
-        # Formula mirrors Google Sheets LET/LOOKUP:
-        #   pos = (ratio - 0.27) / (0.3933 - 0.27)  clamped to [0, 1]
-        #   then bucketed into 10 equal deciles
-        breadth_ratio = None
+        # ── Breadth ratio changes ──────────────────────────────────────────
+        breadth_ratio = breadth_1d = breadth_1m = breadth_ytd = None
         breadth_label = "Unknown"
         if RSP_TICKER in df.columns and SPY_TICKER in df.columns:
-            rsp = df[RSP_TICKER].dropna()
-            spy = df[SPY_TICKER].dropna()
-            ratio         = (rsp / spy).dropna()
+            rsp   = df[RSP_TICKER].dropna()
+            spy   = df[SPY_TICKER].dropna()
+            ratio = (rsp / spy).dropna()
+
             breadth_ratio = round(float(ratio.iloc[-1]), 4)
+            breadth_label = _breadth_label(breadth_ratio)
 
-            MIN_FLOOR   = 0.27
-            MAX_CEILING = 0.3933
-            pos = (breadth_ratio - MIN_FLOOR) / (MAX_CEILING - MIN_FLOOR)
-            pos = max(0.0, min(0.9999, pos))   # clamp to [0, 1)
+            # Period changes in the ratio itself
+            def _ratio_chg(n):
+                if len(ratio) > n:
+                    return round(float(ratio.iloc[-1] - ratio.iloc[-n-1]), 4)
+                return None
 
-            LABELS = [
-                "Apex Concentration",    # 0.0 – 0.1
-                "Severe Divergence",     # 0.1 – 0.2
-                "High Concentration",    # 0.2 – 0.3
-                "Thin Participation",    # 0.3 – 0.4
-                "Broadening-Out",        # 0.4 – 0.5
-                "Neutral Breadth",       # 0.5 – 0.6
-                "Healthy Participation", # 0.6 – 0.7
-                "Risk-On Rotation",      # 0.7 – 0.8
-                "Solid Breadth",         # 0.8 – 0.9
-                "Maximum Breadth",       # 0.9 – 1.0
-            ]
-            breadth_label = LABELS[int(pos * 10)]
+            breadth_1d  = _ratio_chg(1)
+            breadth_1m  = _ratio_chg(21)   # ~1 trading month
+            # YTD: compare to first trading day of the year
+            first_of_year = ratio[ratio.index >= f"{ratio.index[-1].year}-01-01"]
+            breadth_ytd = round(float(ratio.iloc[-1] - first_of_year.iloc[0]), 4) if len(first_of_year) else None
 
         return {
-            "risk_rotation_pct": risk_pct,
-            "risk_label":        risk_label,
-            "breadth_ratio":     breadth_ratio,
-            "breadth_label":     breadth_label,
+            "risk_rotation_pct":  risk_pct_1m,   # primary (IFS label)
+            "risk_pct_1d":        risk_pct_1d,
+            "risk_pct_1m":        risk_pct_1m,
+            "risk_pct_ytd":       risk_pct_ytd,
+            "risk_label":         risk_label,
+            "breadth_ratio":      breadth_ratio,
+            "breadth_chg_1d":     breadth_1d,
+            "breadth_chg_1m":     breadth_1m,
+            "breadth_chg_ytd":    breadth_ytd,
+            "breadth_label":      breadth_label,
         }
 
     return fetch_with_cache(key, _fetch, ttl=120) or {}

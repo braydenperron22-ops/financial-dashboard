@@ -719,36 +719,54 @@ def bottom_row():
             f'</div></div>', unsafe_allow_html=True)
 
     with c2:
-        rr  = risk.get("risk_rotation_pct",0) or 0
-        rrl = risk.get("risk_label","—")
+        rr   = risk.get("risk_rotation_pct", 0) or 0
+        rrl  = risk.get("risk_label", "—")
+        # Pick the right period change to display alongside the 1M spread
+        rr_chg = {
+            "1D":  risk.get("risk_pct_1d",  0) or 0,
+            "1M":  risk.get("risk_pct_1m",  0) or 0,
+            "YTD": risk.get("risk_pct_ytd", 0) or 0,
+        }.get(MODE, 0)
         tag = {"Euphoric":"tag-euph","Aggressive":"tag-agg","Risk-On":"tag-on",
                "Risk-Leaning":"tag-lean","Neutral":"tag-neu","Defensive":"tag-def",
                "Risk-Off":"tag-off","Panic":"tag-pan"}.get(rrl,"tag-neu")
+        period_lbl = {"1D":"TODAY","1M":"1 MONTH","YTD":"YEAR TO DATE"}[MODE]
         st.markdown(
             f'<div class="card" style="border-right:2px solid #1e1e1e;">'
-            f'<div class="card-hdr" style="justify-content:center;">Risk Rotation</div>'
+            f'<div class="card-hdr" style="justify-content:center;">'
+            f'Risk Rotation&nbsp;{badge(MODE)}</div>'
             f'<div class="big-wrap">'
             f'<div class="big-num {cl(rr)}">{abs(rr):.3f}</div>'
-            f'<div class="big-sub">HYG / LQD · 1 MONTH</div>'
-            f'<div class="big-chg {cl(rr)}">{ar(rr)}&nbsp;{fpc(rr)}</div>'
+            f'<div class="big-sub">HYG / LQD SPREAD</div>'
+            f'<div class="big-chg {cl(rr_chg)}">{ar(rr_chg)}&nbsp;{fpc(rr_chg)} {period_lbl}</div>'
             f'<div><span class="tag {tag}">{rrl}</span></div>'
             f'</div></div>', unsafe_allow_html=True)
 
     with c3:
         br  = risk.get("breadth_ratio") or 0
-        brl = risk.get("breadth_label","—")
+        brl = risk.get("breadth_label", "—")
+        br_chg = {
+            "1D":  risk.get("breadth_chg_1d",  None),
+            "1M":  risk.get("breadth_chg_1m",  None),
+            "YTD": risk.get("breadth_chg_ytd", None),
+        }.get(MODE)
         tag = {"Maximum Breadth":"tag-euph","Solid Breadth":"tag-agg",
                "Risk-On Rotation":"tag-on","Healthy Participation":"tag-lean",
                "Neutral Breadth":"tag-neu","Broadening-Out":"tag-lean",
                "Thin Participation":"tag-def","High Concentration":"tag-nar",
                "Severe Divergence":"tag-off","Apex Concentration":"tag-pan"}.get(brl,"tag-neu")
+        period_lbl = {"1D":"TODAY","1M":"1 MONTH","YTD":"YEAR TO DATE"}[MODE]
+        br_chg_str = (f"{br_chg:+.4f}" if br_chg is not None else "—")
+        br_chg_cl  = cl(br_chg) if br_chg is not None else "t2"
+        br_chg_ar  = ar(br_chg) if br_chg is not None else ""
         st.markdown(
             f'<div class="card" style="border-right:2px solid #1e1e1e;">'
-            f'<div class="card-hdr" style="justify-content:center;">Breadth</div>'
+            f'<div class="card-hdr" style="justify-content:center;">'
+            f'Breadth&nbsp;{badge(MODE)}</div>'
             f'<div class="big-wrap">'
-            f'<div class="big-num t0">{br:.3f}</div>'
+            f'<div class="big-num t0">{br:.4f}</div>'
             f'<div class="big-sub">RSP / SPY · 10-LEVEL</div>'
-            f'<div class="big-chg t2">EQUAL-WEIGHT vs CAP</div>'
+            f'<div class="big-chg {br_chg_cl}">{br_chg_ar}&nbsp;{br_chg_str} {period_lbl}</div>'
             f'<div><span class="tag {tag}">{brl}</span></div>'
             f'</div></div>', unsafe_allow_html=True)
 
