@@ -332,15 +332,15 @@ BREAKING_KEYWORDS = [
 ]
 def sigma_class(sigma, base_colour: str = "") -> str:
     """
-    Returns a CSS class string to apply pulsing if |sigma| > 3.
-    Stacks on top of the existing colour class.
-    base_colour is passed through so the element keeps its pos/neg class too.
+    Returns a CSS class string to apply pulsing if |sigma| > 2.5.
+    2.5σ occurs ~1.2% of trading days — genuinely unusual but not
+    so rare that the pulse never fires.
     """
     if sigma is None:
         return base_colour
-    if sigma >= 3.0:
+    if sigma >= 2.5:
         return f"{base_colour} sigma-pos".strip()
-    if sigma <= -3.0:
+    if sigma <= -2.5:
         return f"{base_colour} sigma-neg".strip()
     return base_colour
 
@@ -537,7 +537,7 @@ def top_row():
                 pct_cls = sigma_class(sig if not is_hol else None, colour)
             else:
                 colour, arrow, display, is_hol = cl(raw), ar(raw), fpc(raw,2), False
-                pct_cls = colour
+                pct_cls = sigma_class(sig, colour)   # pulse fires in all modes
             sub       = "Holiday" if is_hol else f"${fp(d.get('price'))}"
             sub_style = "color:#505050;" if is_hol else ""
             idx_cells += (
@@ -689,14 +689,14 @@ with col_port:
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">XEQT</div>'
             f'<div class="pt-px" style="color:{xeqt_pcol};">{fp(xeqt_px)}</div>'
-            f'<div class="pt-ch {sigma_class(xeqt.get("sigma_1d") if KEY=="pct_1d" else None, xc)}">{xa}{xd}</div>'  
+            f'<div class="pt-ch {sigma_class(xeqt.get("sigma_1d"), xc)}">{xa}{xd}</div>'  
             f'<div style="text-align:right;">'
             f'<div class="pt-ret {rc}">{ra}{rd}</div>'
             f'<div class="pt-wt">{"TSX HOLIDAY" if x_hol else "BLENDED 80/20"}</div></div></div>'
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">BTC</div>'
             f'<div class="pt-px" style="color:{btc_pcol};">${fp(btc_px,0)}</div>'
-            f'<div class="pt-ch {sigma_class(btc.get("sigma_1d") if KEY=="pct_1d" else None, bc)}">{ba}{bd}</div>'  
+            f'<div class="pt-ch {sigma_class(btc.get("sigma_1d"), bc)}">{ba}{bd}</div>'  
             f'<div style="text-align:right;">'
             f'<div class="pt-wt" style="margin-top:18px;">20% WEIGHT · 24/7</div>'
             f'</div></div></div>')
@@ -734,7 +734,7 @@ def bottom_row():
                 else:
                     colour,arrow,display = cl(raw),ar(raw),fpc(raw)
                 nc    = sector_name_colour(d.get("price"),d.get("sma50"),d.get("sma200"),d.get("ath"))
-                sig   = d.get("sigma_1d") if KEY == "pct_1d" else None
+                sig   = d.get("sigma_1d")   # check sigma in all modes
                 pcls  = sigma_class(sig, colour)
                 rows.append(
                     f'<div class="sec-r">'
