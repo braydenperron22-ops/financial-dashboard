@@ -338,9 +338,9 @@ def sigma_class(sigma, base_colour: str = "") -> str:
     """
     if sigma is None:
         return base_colour
-    if sigma >= 3.0:
+    if sigma >= 2.5:
         return f"{base_colour} sigma-pos".strip()
-    if sigma <= -3.0:
+    if sigma <= -2.5:
         return f"{base_colour} sigma-neg".strip()
     return base_colour
 
