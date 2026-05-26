@@ -809,7 +809,7 @@ def get_most_active_tickers(count: int = 25) -> List[str]:
     """
     key = "most_active_tickers_v2"
 
-    # Universe of 200 liquid US stocks — no ETFs, pure equities
+    # Universe of pure equities only — absolutely no ETFs, funds, or indices
     UNIVERSE = [
         # Mega-cap tech
         "AAPL","MSFT","NVDA","AMZN","META","GOOGL","GOOG","TSLA","AVGO","ORCL",
@@ -823,22 +823,22 @@ def get_most_active_tickers(count: int = 25) -> List[str]:
         "LLY","UNH","JNJ","PFE","ABBV","MRK","BMY","AMGN","GILD","BIIB",
         "MRNA","BNTX","REGN","VRTX","ISRG","MDT","SYK","ABT","TMO","DHR",
         # Energy
-        "XOM","CVX","OXY","SLB","MPC","VLO","PSX","COP","EOG","PXD",
-        "HAL","BKR","DVN","FANG","MRO","APA","HES","KMI","WMB","OKE",
+        "XOM","CVX","OXY","SLB","MPC","VLO","PSX","COP","EOG",
+        "HAL","BKR","DVN","MRO","APA","HES","KMI","WMB","OKE",
         # Consumer
         "WMT","COST","TGT","HD","LOW","NKE","MCD","SBUX","CMG","YUM",
         "DIS","NFLX","CMCSA","PARA","WBD","SNAP","PINS","RBLX","EA","TTWO",
         # Industrials & autos
         "CAT","DE","BA","LMT","RTX","GE","HON","MMM","UPS","FDX",
-        "F","GM","RIVN","LCID","NIO","XPEV","LI","TSLA","TM","HMC",
+        "F","GM","RIVN","LCID","NIO","XPEV","LI","TM","HMC",
         # Crypto-adjacent equities
         "RIOT","MARA","HUT","CLSK","BTBT","CIFR","HIVE","BTDR","CORZ","WULF",
         # High-vol / momentum / meme
-        "AMC","GME","BBAI","SOUN","PLUG","FCEL","BLNK","CHPT","LAZR","LIDR",
+        "AMC","GME","BBAI","SOUN","PLUG","FCEL","BLNK","CHPT","LAZR",
         # Telecom & media
-        "T","VZ","TMUS","NFLX","GOOGL","META","TWTR","UBER","LYFT","ABNB",
+        "T","VZ","TMUS","UBER","LYFT","ABNB","DASH","BMBL",
         # Recent IPOs & high-growth
-        "ARM","KVYO","CART","ASTS","LUNR","RDW","ACHR","JOBY","LILM","RLAY",
+        "KVYO","CART","ASTS","LUNR","ACHR","JOBY","RDDT","DUOL","APP","CELH",
     ]
     # Deduplicate preserving order
     seen = set()
@@ -849,7 +849,7 @@ def get_most_active_tickers(count: int = 25) -> List[str]:
         "META","GOOGL","AMD","PLTR","AVGO",
         "JPM","BAC","XOM","V","MA",
         "COIN","MSTR","LLY","GS","SHOP",
-        "UNH","HD","WMT","NFLX","ARM",
+        "UNH","HD","WMT","NFLX","PLTR",
     ]
 
     def _fetch():
