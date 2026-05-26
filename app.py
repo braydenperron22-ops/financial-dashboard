@@ -215,8 +215,8 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
   flex-direction:column; gap:8px;
 }
 .night-clock { font-family:'IBM Plex Mono',monospace !important;
-  font-size:120px; font-weight:700; color:#1a1a1a; letter-spacing:-4px; line-height:1; }
-.night-sub   { font-size:14px; color:#141414; letter-spacing:4px; font-weight:500; }
+  font-size:120px; font-weight:700; color:#c0c0c0; letter-spacing:-4px; line-height:1; }
+.night-sub   { font-size:14px; color:#707070; letter-spacing:4px; font-weight:500; }
 </style>
 """, unsafe_allow_html=True)
 
