@@ -227,20 +227,23 @@ def _calc_zscore_1d(series: pd.Series, lookback: int = 252) -> Optional[float]:
     Calculate how many standard deviations today's 1D return is
     from the mean of the last `lookback` daily returns.
 
-    Returns the z-score (positive = above mean, negative = below).
-    Returns None if insufficient data.
+    Uses pct_change on the close price series.
+    Returns the z-score. Returns None if insufficient data.
     """
     try:
         daily = series.pct_change().dropna() * 100   # daily % returns
-        if len(daily) < lookback // 2:               # need at least half the window
+        if len(daily) < 30:                           # need at least 30 data points
             return None
-        window  = daily.iloc[-lookback:-1]            # exclude today
-        today   = float(daily.iloc[-1])
-        mu      = float(window.mean())
-        sigma   = float(window.std())
-        if sigma == 0:
+        # Use up to `lookback` days of history, excluding today
+        window = daily.iloc[-(lookback + 1):-1]
+        if len(window) < 20:
             return None
-        return round((today - mu) / sigma, 2)
+        today = float(daily.iloc[-1])
+        mu    = float(window.mean())
+        std   = float(window.std())
+        if std <= 0:
+            return None
+        return round((today - mu) / std, 2)
     except Exception:
         return None
 
@@ -314,7 +317,7 @@ def get_indices_data() -> Dict[str, Dict[str, Any]]:
         pct_1m : float   (1-month % change, ~21 trading days)
         pct_ytd: float   (year-to-date % change)
     """
-    key = "indices_data"
+    key = "indices_data_v2"
 
     def _fetch():
         tickers = list(INDICES.values())
@@ -348,7 +351,7 @@ def get_sectors_data() -> Dict[str, Dict[str, Any]]:
     Fetch price and return data for all sector ETFs defined in config.
     Same structure as get_indices_data().
     """
-    key = "sectors_data"
+    key = "sectors_data_v2"
 
     def _fetch():
         tickers = list(SECTORS.values())
@@ -393,7 +396,7 @@ def get_portfolio_data() -> Dict[str, Any]:
       - portfolio correlation vs SPY
       - alpha in basis points (portfolio return − SPY YTD return)
     """
-    key = "portfolio_data"
+    key = "portfolio_data_v2"
 
     def _fetch():
         # Gather all tickers we need
