@@ -736,7 +736,7 @@ def bottom_row():
             f'<div class="card-hdr" style="justify-content:center;">'
             f'Risk Rotation&nbsp;{badge(MODE)}</div>'
             f'<div class="big-wrap">'
-            f'<div class="big-num {cl(rr)}">{abs(rr):.3f}</div>'
+            f'<div class="big-num t0">{abs(rr):.3f}</div>'
             f'<div class="big-sub">HYG / LQD SPREAD</div>'
             f'<div class="big-chg {cl(rr_chg)}" style="font-size:17px;">{ar(rr_chg)}&nbsp;{fpc(rr_chg)}</div>'
             f'<div style="font-size:9px;color:#555;letter-spacing:1.5px;margin-top:2px;">{period_lbl} CHANGE</div>'
@@ -757,7 +757,9 @@ def bottom_row():
                "Thin Participation":"tag-def","High Concentration":"tag-nar",
                "Severe Divergence":"tag-off","Apex Concentration":"tag-pan"}.get(brl,"tag-neu")
         period_lbl = {"1D":"TODAY","1M":"1 MONTH","YTD":"YEAR TO DATE"}[MODE]
-        br_chg_str = (f"{br_chg:+.4f}" if br_chg is not None else "—")
+        # Convert ratio change to percentage for readability
+        br_chg_pct = round(br_chg * 100, 3) if br_chg is not None else None
+        br_chg_str = (f"{br_chg_pct:+.3f}%" if br_chg_pct is not None else "—")
         br_chg_cl  = cl(br_chg) if br_chg is not None else "t2"
         br_chg_ar  = ar(br_chg) if br_chg is not None else ""
         st.markdown(
