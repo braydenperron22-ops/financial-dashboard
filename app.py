@@ -573,7 +573,7 @@ def top_row():
     FUTURES_MAP = {
         "S&P 500":     ("S&P FUT",    "S&P 500"),
         "NASDAQ":      ("NQ FUT",     "NASDAQ"),
-        "SMALL-CAP":   ("RUSSELL FUT","SMALL-CAP"),
+        "Small-Cap":   ("RUSSELL FUT","SMALL-CAP"),
         "TSX":         ("CRUDE OIL",  "CRUDE OIL"),
         "International":("GOLD",      "GOLD"),
         "Emerging":    ("SILVER",     "SILVER"),
