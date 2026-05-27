@@ -695,25 +695,45 @@ def get_risk_breadth() -> Dict[str, Any]:
         tickers = [HYG_TICKER, LQD_TICKER, RSP_TICKER, SPY_TICKER]
         df = _download_multi(tickers, period="1y")   # need YTD so pull 1y
 
-        # ── Risk Rotation spreads ─────────────────────────────────────────
+        # ── Risk Rotation ─────────────────────────────────────────────────
+        # Big number = HYG price / LQD price (simple ratio, stable)
+        # Period changes = change in that ratio over 1D / 1M / YTD
+        risk_ratio  = 0.0
         risk_pct_1d = risk_pct_1m = risk_pct_ytd = 0.0
         risk_label  = "Neutral"
         if HYG_TICKER in df.columns and LQD_TICKER in df.columns:
             hyg = df[HYG_TICKER].dropna()
             lqd = df[LQD_TICKER].dropna()
-            risk_pct_1d = _spread(hyg, lqd, 1)
-            risk_pct_1m = _spread(hyg, lqd, 30)   # primary (IFS label)
-            risk_label  = _risk_label(risk_pct_1m)
-            # YTD: use first trading day of the year, same method as breadth
-            this_year = str(hyg.index[-1].year)
-            hyg_ytd = hyg[hyg.index >= this_year]
-            lqd_ytd = lqd[lqd.index >= this_year]
-            if len(hyg_ytd) >= 2 and len(lqd_ytd) >= 2:
-                hyg_ytd_ret = (float(hyg_ytd.iloc[-1]) - float(hyg_ytd.iloc[0])) / float(hyg_ytd.iloc[0]) * 100
-                lqd_ytd_ret = (float(lqd_ytd.iloc[-1]) - float(lqd_ytd.iloc[0])) / float(lqd_ytd.iloc[0]) * 100
-                risk_pct_ytd = round(hyg_ytd_ret - lqd_ytd_ret, 3)
-            else:
-                risk_pct_ytd = 0.0
+
+            # Align on common dates
+            paired = pd.concat([hyg, lqd], axis=1).dropna()
+            paired.columns = ["hyg", "lqd"]
+
+            if not paired.empty and paired["lqd"].iloc[-1] != 0:
+                # Current ratio
+                risk_ratio = round(float(paired["hyg"].iloc[-1]) / float(paired["lqd"].iloc[-1]), 4)
+
+                # Period changes in the ratio
+                def _ratio_pct_chg(n):
+                    if len(paired) > n:
+                        old_r = paired["hyg"].iloc[-n-1] / paired["lqd"].iloc[-n-1]
+                        new_r = paired["hyg"].iloc[-1]   / paired["lqd"].iloc[-1]
+                        return round((float(new_r) - float(old_r)) / float(old_r) * 100, 3)
+                    return 0.0
+
+                risk_pct_1d = _ratio_pct_chg(1)
+                risk_pct_1m = _ratio_pct_chg(21)
+
+                # YTD
+                this_year = str(paired.index[-1].year)
+                ytd = paired[paired.index >= this_year]
+                if len(ytd) >= 2:
+                    old_r = ytd["hyg"].iloc[0] / ytd["lqd"].iloc[0]
+                    new_r = ytd["hyg"].iloc[-1] / ytd["lqd"].iloc[-1]
+                    risk_pct_ytd = round((float(new_r) - float(old_r)) / float(old_r) * 100, 3)
+
+            # IFS label based on 1M % change in ratio (same logic, stable input now)
+            risk_label = _risk_label(risk_pct_1m)
 
         # ── Breadth ratio changes ──────────────────────────────────────────
         breadth_ratio = breadth_1d = breadth_1m = breadth_ytd = None
@@ -739,7 +759,7 @@ def get_risk_breadth() -> Dict[str, Any]:
             breadth_ytd = round(float(ratio.iloc[-1] - first_of_year.iloc[0]), 4) if len(first_of_year) else None
 
         return {
-            "risk_rotation_pct":  risk_pct_1m,   # primary (IFS label)
+            "risk_rotation_pct":  risk_ratio,     # HYG / LQD price ratio
             "risk_pct_1d":        risk_pct_1d,
             "risk_pct_1m":        risk_pct_1m,
             "risk_pct_ytd":       risk_pct_ytd,
