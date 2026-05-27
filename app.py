@@ -649,12 +649,14 @@ def top_row():
         f'<div class="mkt-s {mkt_col}">{mkt_stxt}</div>'
         f'<div class="mkt-cd">{market.get("countdown","")}</div>'
         f'</div></div></div>'
-        f'<div class="mode-bar">'
+        f'<div class="mode-bar" style="justify-content:space-between;">'
+        f'<div style="display:flex;align-items:center;gap:12px;">'
         f'<span class="mode-label">DISPLAY MODE</span>'
         f'<span class="{mode_cls}">{MODE}</span>'
         f'<span style="font-size:13px;color:#505050;margin-left:4px;font-weight:400;">'
         f'— {mode_desc}</span>'
-        f'</div>', unsafe_allow_html=True)
+        f'</div>'
+        f'<a href="/Macro" target="_self" style="font-size:10px;color:#00bcd4;border:1px solid rgba(0,188,212,.3);padding:3px 12px;border-radius:3px;font-weight:700;letter-spacing:1.5px;text-decoration:none;">MACRO ›</a>', unsafe_allow_html=True)
 
 top_row()
 
