@@ -101,15 +101,10 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 /* MCI */
 .mci-num { font-size:90px; font-weight:900; line-height:1; text-align:center; letter-spacing:-4px; }
 .mci-lbl { font-size:20px; font-weight:700; text-align:center; letter-spacing:1px; margin-top:2px; }
-.vix-duo { display:flex; justify-content:space-between; margin-top:11px; padding-top:10px; border-top:1px solid #1a1a1a; }
-.vix-blk { text-align:center; flex:1; }
-.vix-l   { font-size:12px; color:#cccccc; letter-spacing:1px; margin-bottom:5px; font-weight:600; }
-.vix-v   { font-size:25px; font-weight:800; }
-.fbar    { margin-top:11px; padding-top:10px; border-top:1px solid #1a1a1a; }
-.fb-row  { margin-bottom:5px; }
-.fb-top  { display:flex; justify-content:space-between; font-size:11px; color:#cccccc; margin-bottom:5px; font-weight:500; }
-.fb-bg   { background:#111; height:4px; border-radius:2px; }
-.fb-fill { height:4px; border-radius:2px; opacity:.6; transition:width .5s ease; }
+.vix-duo { display:flex; justify-content:space-between; margin-top:18px; padding-top:16px; border-top:1px solid #1a1a1a; gap:8px; }
+.vix-blk { text-align:center; flex:1; background:#0d0d0d; border:1px solid #1a1a1a; border-radius:3px; padding:12px 8px; }
+.vix-l   { font-size:11px; color:#888; letter-spacing:1px; margin-bottom:8px; font-weight:600; text-transform:uppercase; }
+.vix-v   { font-size:36px; font-weight:800; color:#ffffff; line-height:1; }
 
 /* PORTFOLIO */
 .stats-row { display:flex; gap:7px; margin-bottom:9px; }
@@ -671,34 +666,46 @@ col_mci, col_port = st.columns([1, 3], gap="small")
 with col_mci:
     @st.fragment(run_every=120)
     def mci_panel():
-        vol   = get_volatility_data()         or {}
-        mci   = get_market_confidence_index() or {}
-        score = mci.get("score", 0)
-        mlabel= mci.get("label", "—")
-        vc    = vol.get("vix_current", 0)
-        vma   = vol.get("vix_30dma", 0)
-        facts = mci.get("factors", {})
-        gc    = ("#00e676" if score>=75 else "#ffd54f" if score>=55
-                 else "#ff9800" if score>=35 else "#ff1744")
+        vol    = get_volatility_data()         or {}
+        mci    = get_market_confidence_index() or {}
+        score  = mci.get("score", 0)
+        mlabel = mci.get("label", "—")
+        vc     = vol.get("vix_current", 0)
+        vma    = vol.get("vix_30dma", 0)
+
+        # VIX vs 30DMA colour
         diff    = vc - vma
-        vix_col = "#00e676" if diff<-1 else "#ff1744" if diff>1 else "#ffffff"
-        fbars = "".join(
-            f'<div class="fb-row"><div class="fb-top"><span>{fn}</span>'
-            f'<span style="color:#ccc">{fv:.0f}</span></div>'
-            f'<div class="fb-bg"><div class="fb-fill" style="background:{gc};width:{fv:.0f}%;"></div>'
-            f'</div></div>' for fn,fv in facts.items())
+        vix_col = "#00e676" if diff < -1 else "#ff1744" if diff > 1 else "#ffffff"
+
+        # Per-label colour and style — each of the 9 levels is distinct
+        LABEL_STYLES = {
+            "Euphoria":       "color:#39ff14;font-size:22px;font-weight:700;letter-spacing:2px;",
+            "Very Confident": "color:#00e676;font-size:20px;font-weight:700;letter-spacing:1px;",
+            "Confident":      "color:#00c853;font-size:22px;font-weight:700;letter-spacing:2px;",
+            "Cautious":       "color:#ffd54f;font-size:21px;font-weight:700;letter-spacing:2px;",
+            "Neutral":        "color:#90a4ae;font-size:22px;font-weight:600;letter-spacing:3px;",
+            "Defensive":      "color:#ffb300;font-size:21px;font-weight:700;letter-spacing:1px;",
+            "Concerned":      "color:#ff9800;font-size:21px;font-weight:800;letter-spacing:1px;",
+            "Fear":           "color:#ff1744;font-size:22px;font-weight:800;letter-spacing:2px;",
+            "Panic":          "color:#ff0000;font-size:24px;font-weight:900;letter-spacing:3px;",
+        }
+        lbl_style = LABEL_STYLES.get(mlabel, "color:#ffffff;font-size:20px;font-weight:700;")
+
         st.markdown(
             f'<div class="card" style="border-right:2px solid #1e1e1e;">'
             f'<div class="card-hdr">Market Confidence</div>'
-            f'<div class="mci-num" style="color:{gc};">{score:.0f}</div>'
-            f'<div class="mci-lbl" style="color:{gc};">{mlabel}</div>'
+            f'<div class="mci-num" style="color:#ffffff;">{score:.0f}</div>'
+            f'<div class="mci-lbl" style="{lbl_style}">{mlabel}</div>'
             f'<div class="vix-duo">'
-            f'<div class="vix-blk"><div class="vix-l">VIX</div>'
-            f'<div class="vix-v" style="color:{vix_col};">{fp(vc)}</div></div>'
-            f'<div style="width:1px;background:#1a1a1a;"></div>'
-            f'<div class="vix-blk"><div class="vix-l">VIX 30DMA</div>'
-            f'<div class="vix-v" style="color:#c0c0c0;">{fp(vma)}</div></div>'
-            f'</div><div class="fbar">{fbars}</div></div>',
+            f'<div class="vix-blk">'
+            f'<div class="vix-l">VIX</div>'
+            f'<div class="vix-v" style="color:{vix_col};">{fp(vc)}</div>'
+            f'</div>'
+            f'<div class="vix-blk">'
+            f'<div class="vix-l">30 DMA</div>'
+            f'<div class="vix-v" style="color:#c0c0c0;">{fp(vma)}</div>'
+            f'</div>'
+            f'</div></div>',
             unsafe_allow_html=True)
     mci_panel()
 
