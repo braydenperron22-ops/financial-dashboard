@@ -568,28 +568,30 @@ def top_row():
     show_futures = is_futures_window() or is_sunday_futures_open()
     futures      = get_futures_data() if show_futures else {}
 
-    # Equity futures replace their index equivalent
-    FUTURES_MAP = {"S&P 500":"S&P FUT","NASDAQ":"NQ FUT","SMALL-CAP":"RUSSELL FUT"}
-
-    # Extra commodity/futures cells appended after the main indices
-    EXTRA_FUTURES = [
-        ("CRUDE OIL", "CL=F"),
-        ("GOLD",      "GC=F"),
-        ("NAT GAS",   "NG=F"),
-        ("DOW",       "YM=F"),
-    ]
+    # Map each index slot to its futures replacement during futures window
+    # Format: "Index Name": ("Futures key in get_futures_data()", "Display label")
+    FUTURES_MAP = {
+        "S&P 500":     ("S&P FUT",    "S&P 500"),
+        "NASDAQ":      ("NQ FUT",     "NASDAQ"),
+        "SMALL-CAP":   ("RUSSELL FUT","SMALL-CAP"),
+        "TSX":         ("CRUDE OIL",  "CRUDE OIL"),
+        "International":("GOLD",      "GOLD"),
+        "Emerging":    ("SILVER",     "SILVER"),
+    }
 
     idx_cells = ""
     for name, d in indices.items():
-        fut_key = FUTURES_MAP.get(name) if futures else None
-        fut     = futures.get(fut_key) if fut_key else None
+        mapping = FUTURES_MAP.get(name) if show_futures and futures else None
+        fut_key, fut_lbl = mapping if mapping else (None, name)
+        fut = futures.get(fut_key) if fut_key else None
+
         if fut and fut.get("price"):
             pct = fut.get("pct_1d")
             colour = cl(pct); arrow = ar(pct)
             display = fpc(pct) if pct is not None else "—"
             idx_cells += (
                 f'<div class="idx-cell" style="border-top:2px solid #ffd54f20;">'
-                f'<div class="idx-lbl" style="color:#ffd54f;">{name}</div>'
+                f'<div class="idx-lbl" style="color:#ffd54f;">{fut_lbl}</div>'
                 f'<div class="idx-pct {colour}">{arrow}{display}</div>'
                 f'<div class="idx-px">${fp(fut["price"])} '
                 f'<span style="color:#ffd54f;font-size:9px;font-weight:600;letter-spacing:1px;">FUT</span>'
@@ -612,28 +614,6 @@ def top_row():
                 f'<div class="idx-pct {pct_cls}">{arrow}{display}</div>'
                 f'<div class="idx-px" style="{sub_style}">{sub}</div>'
                 f'</div>')
-
-    # Append extra commodity futures cells during futures windows
-    if show_futures and futures:
-        FUT_KEYS = [
-            ("CRUDE OIL", "CRUDE OIL"),
-            ("GOLD",      "GOLD"),
-            ("NAT GAS",   "NAT GAS"),
-            ("DOW",       "DOW FUT"),
-        ]
-        for label, key in FUT_KEYS:
-            f = futures.get(key)
-            if not f or not f.get("price"): continue
-            pct = f.get("pct_1d")
-            colour = cl(pct); arrow = ar(pct)
-            display = fpc(pct) if pct is not None else "—"
-            idx_cells += (
-                f'<div class="idx-cell" style="border-top:2px solid #ffd54f20;flex:0.85;">'
-                f'<div class="idx-lbl" style="color:#ffd54f;">{label}</div>'
-                f'<div class="idx-pct {colour}">{arrow}{display}</div>'
-                f'<div class="idx-px">${fp(f["price"])} '
-                f'<span style="color:#ffd54f;font-size:9px;font-weight:600;letter-spacing:1px;">FUT</span>'
-                f'</div></div>')
 
     session = get_session()
     if us_hol:

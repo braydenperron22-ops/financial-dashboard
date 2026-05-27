@@ -1355,6 +1355,7 @@ def get_futures_data() -> Dict[str, Any]:
         "CRUDE OIL":  "CL=F",
         "GOLD":       "GC=F",
         "NAT GAS":    "NG=F",
+        "SILVER":      "SI=F",
     }
 
     def _fetch():
