@@ -48,7 +48,7 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 .tkr-outer {
   width:100vw; position:relative; left:50%; transform:translateX(-50%);
   overflow:hidden; background:#000;
-  border-top:2px solid #00e676; border-bottom:2px solid #1e1e1e; padding:11px 0;
+  border-top:2px solid #00e676; border-bottom:2px solid #333333; padding:11px 0;
 }
 .tkr-track { display:inline-block; white-space:nowrap; animation:tkr 240s linear infinite; }
 .tkr-track:hover { animation-play-state:paused; }
@@ -62,15 +62,15 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
         border-radius:2px; font-weight:600; vertical-align:middle; }
 
 /* CARD */
-.card     { background:#090909; border:1px solid #1e1e1e; padding:13px 14px; height:100%; }
+.card     { background:#090909; border:1px solid #2e2e2e; padding:13px 14px; height:100%; }
 .card-hdr { font-size:10px; font-weight:700; letter-spacing:1.5px; color:#e8e8e8;
             text-transform:uppercase; padding-bottom:7px; margin-bottom:9px;
-            border-bottom:1px solid #1a1a1a; display:flex;
+            border-bottom:1px solid #2a2a2a; display:flex;
             justify-content:space-between; align-items:center; }
 
 /* INDICES ROW */
-.idx-row  { display:flex; width:100%; background:#090909; border-top:2px solid #303030; border-bottom:2px solid #1e1e1e; }
-.idx-cell { flex:1; padding:13px 10px; text-align:center; border-right:1px solid #1e1e1e; }
+.idx-row  { display:flex; width:100%; background:#090909; border-top:2px solid #404040; border-bottom:2px solid #333333; }
+.idx-cell { flex:1; padding:13px 10px; text-align:center; border-right:1px solid #2e2e2e; }
 .idx-cell:last-of-type { border-right:none; }
 .idx-lbl  { font-size:11px; color:#d0d0d0; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:5px; font-weight:600; }
 .idx-pct  { font-size:30px; font-weight:800; line-height:1; }
@@ -91,7 +91,7 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 .mkt-cd { font-size:13px; font-weight:500; margin-top:5px; color:#cccccc; }
 
 /* MODE BAR */
-.mode-bar { background:#060606; padding:7px 14px; border-bottom:2px solid #1e1e1e;
+.mode-bar { background:#060606; padding:7px 14px; border-bottom:2px solid #333333;
             display:flex; align-items:center; gap:12px; }
 .mode-label { font-size:12px; color:#aaaaaa; letter-spacing:1.5px; font-weight:600; }
 .mode-1d  { font-size:20px; font-weight:800; letter-spacing:2px; color:#00e676; border-bottom:3px solid #00e676; padding-bottom:1px; }
@@ -102,20 +102,20 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 .mci-num { font-size:90px; font-weight:900; line-height:1; text-align:center; letter-spacing:-4px; }
 .mci-lbl { font-size:20px; font-weight:700; text-align:center; letter-spacing:1px; margin-top:2px; }
 .vix-duo { display:flex; justify-content:space-between; margin-top:18px; padding-top:16px; border-top:1px solid #1a1a1a; gap:8px; }
-.vix-blk { text-align:center; flex:1; background:#0d0d0d; border:1px solid #1a1a1a; border-radius:3px; padding:12px 8px; }
+.vix-blk { text-align:center; flex:1; background:#0d0d0d; border:1px solid #2a2a2a; border-radius:3px; padding:12px 8px; }
 .vix-l   { font-size:11px; color:#888; letter-spacing:1px; margin-bottom:8px; font-weight:600; text-transform:uppercase; }
 .vix-v   { font-size:36px; font-weight:800; color:#ffffff; line-height:1; }
 
 /* PORTFOLIO */
 .stats-row { display:flex; gap:7px; margin-bottom:9px; }
-.stat-box  { flex:1; background:#0d0d0d; border:1px solid #1a1a1a; border-radius:3px; padding:7px 10px; }
+.stat-box  { flex:1; background:#0d0d0d; border:1px solid #2a2a2a; border-radius:3px; padding:7px 10px; }
 .stat-lbl  { font-size:11px; color:#cccccc; letter-spacing:1px; text-transform:uppercase; margin-bottom:3px; font-weight:600; }
 .stat-val  { font-size:22px; font-weight:700; }
 .pt-hd     { display:grid; grid-template-columns:1fr 1.1fr 1fr 1fr;
              font-size:11px; color:#cccccc; letter-spacing:1px; text-transform:uppercase;
-             padding-bottom:7px; border-bottom:1px solid #1a1a1a; font-weight:600; }
+             padding-bottom:7px; border-bottom:1px solid #2a2a2a; font-weight:600; }
 .pt-r      { display:grid; grid-template-columns:1fr 1.1fr 1fr 1fr;
-             padding:14px 0; border-bottom:1px solid #0d0d0d; align-items:center; }
+             padding:14px 0; border-bottom:1px solid #1e1e1e; align-items:center; }
 .pt-r:last-child { border-bottom:none; }
 .pt-sym    { font-size:34px; font-weight:700; color:#fff; }
 .pt-px     { font-size:31px; font-weight:600; transition:color .4s ease; }
@@ -126,11 +126,11 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 /* SECTORS */
 .sec-grid { display:grid; grid-template-columns:1fr 1fr; }
 .sec-r    { display:flex; justify-content:space-between; align-items:center;
-            padding:7px 4px; border-bottom:1px solid #0d0d0d; }
+            padding:7px 4px; border-bottom:1px solid #1e1e1e; }
 .sec-r:last-child { border-bottom:none; }
 .sec-n    { font-size:15px; font-weight:500; }
 .sec-pct  { font-weight:700; font-size:15px; text-align:right; }
-.sec-grid>div:first-child .sec-r { padding-right:12px; border-right:1px solid #1a1a1a; }
+.sec-grid>div:first-child .sec-r { padding-right:12px; border-right:1px solid #2a2a2a; }
 .sec-grid>div:last-child  .sec-r { padding-left:12px; }
 
 /* RISK / BREADTH */
@@ -153,9 +153,9 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 /* YIELDS */
 .y-hd  { display:grid; grid-template-columns:1.4fr 1fr 0.9fr;
           font-size:11px; color:#cccccc; letter-spacing:1px; text-transform:uppercase;
-          padding-bottom:8px; border-bottom:1px solid #1a1a1a; font-weight:600; }
+          padding-bottom:8px; border-bottom:1px solid #2a2a2a; font-weight:600; }
 .y-row { display:grid; grid-template-columns:1.4fr 1fr 0.9fr;
-          padding:8px 0; border-bottom:1px solid #0d0d0d; align-items:center; }
+          padding:8px 0; border-bottom:1px solid #1e1e1e; align-items:center; }
 .y-row:last-child { border-bottom:none; }
 .y-n   { color:#e8e8e8; font-size:15px; font-weight:500; }
 .y-r   { font-size:19px; font-weight:700; color:#fff; text-align:center; }
@@ -536,7 +536,7 @@ def summary_bar():
     t_str   = now_et.strftime("%-I:%M %p ET")
     st.markdown(
         f'<div style="background:#080d08;border-left:4px solid #00e676;'
-        f'border-bottom:1px solid #1e1e1e;padding:7px 16px;'
+        f'border-bottom:1px solid #2e2e2e;padding:7px 16px;'
         f'display:flex;align-items:center;gap:14px;">'
         f'<span style="color:#00e676;font-size:9px;font-weight:700;'
         f'letter-spacing:1.5px;flex-shrink:0;">AI SUMMARY</span>'
@@ -692,7 +692,7 @@ with col_mci:
         lbl_style = LABEL_STYLES.get(mlabel, "color:#ffffff;font-size:20px;font-weight:700;")
 
         st.markdown(
-            f'<div class="card" style="border-right:2px solid #1e1e1e;">'
+            f'<div class="card" style="border-right:2px solid #333333;">'
             f'<div class="card-hdr">Market Confidence</div>'
             f'<div class="mci-num" style="color:#ffffff;">{score:.0f}</div>'
             f'<div class="mci-lbl" style="{lbl_style}">{mlabel}</div>'
@@ -818,7 +818,7 @@ def bottom_row():
                     f'</div>')
             return "".join(rows)
         st.markdown(
-            f'<div class="card" style="border-right:2px solid #1e1e1e;">'
+            f'<div class="card" style="border-right:2px solid #333333;">'
             f'<div class="card-hdr"><span>Sectors</span>{badge(MODE)}</div>'
             f'<div class="sec-grid">'
             f'<div>{sec_col(left)}</div><div>{sec_col(right)}</div>'
@@ -838,11 +838,11 @@ def bottom_row():
                "Risk-Off":"tag-off","Panic":"tag-pan"}.get(rrl,"tag-neu")
         period_lbl = {"1D":"TODAY","1M":"1 MONTH","YTD":"YEAR TO DATE"}[MODE]
         st.markdown(
-            f'<div class="card" style="border-right:2px solid #1e1e1e;">'
+            f'<div class="card" style="border-right:2px solid #333333;">'
             f'<div class="card-hdr" style="justify-content:center;">'
             f'Risk Rotation&nbsp;{badge(MODE)}</div>'
             f'<div class="big-wrap">'
-            f'<div class="big-num t0">{rr:.4f}</div>'
+            f'<div class="big-num t0">{rr:.3f}</div>'
             f'<div class="big-sub">HYG / LQD RATIO</div>'
             f'<div class="big-chg {cl(rr_chg)}" style="font-size:17px;">{ar(rr_chg)}&nbsp;{fpc(rr_chg)}</div>'
             f'<div style="font-size:12px;color:#aaaaaa;letter-spacing:1px;margin-top:3px;font-weight:500;">{period_lbl} CHANGE</div>'
@@ -869,7 +869,7 @@ def bottom_row():
         br_chg_cl  = cl(br_chg) if br_chg is not None else "t2"
         br_chg_ar  = ar(br_chg) if br_chg is not None else ""
         st.markdown(
-            f'<div class="card" style="border-right:2px solid #1e1e1e;">'
+            f'<div class="card" style="border-right:2px solid #333333;">'
             f'<div class="card-hdr" style="justify-content:center;">'
             f'Breadth&nbsp;{badge(MODE)}</div>'
             f'<div class="big-wrap">'
