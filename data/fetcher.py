@@ -1351,6 +1351,10 @@ def get_futures_data() -> Dict[str, Any]:
         "S&P FUT":    "ES=F",
         "NQ FUT":     "NQ=F",
         "RUSSELL FUT":"RTY=F",
+        "DOW FUT":    "YM=F",
+        "CRUDE OIL":  "CL=F",
+        "GOLD":       "GC=F",
+        "NAT GAS":    "NG=F",
     }
 
     def _fetch():
