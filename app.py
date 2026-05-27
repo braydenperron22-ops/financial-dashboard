@@ -656,7 +656,7 @@ def top_row():
         f'<span style="font-size:13px;color:#505050;margin-left:4px;font-weight:400;">'
         f'— {mode_desc}</span>'
         f'</div>'
-        f'<a href="/Macro" target="_self" style="font-size:10px;color:#00bcd4;border:1px solid rgba(0,188,212,.3);padding:3px 12px;border-radius:3px;font-weight:700;letter-spacing:1.5px;text-decoration:none;">MACRO ›</a>', unsafe_allow_html=True)
+        f'<a href="/Macro" target="_self" target="_self" style="font-size:10px;color:#00bcd4;border:1px solid rgba(0,188,212,.3);padding:3px 12px;border-radius:3px;font-weight:700;letter-spacing:1.5px;text-decoration:none;">MACRO ›</a>', unsafe_allow_html=True)
 
 top_row()
 
