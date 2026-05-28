@@ -1379,21 +1379,35 @@ def get_futures_data() -> Dict[str, Any]:
     }
 
     def _fetch():
+        # Use pct_change on 5d download — same method as ticker tape
+        # so CL=F shows the same sign in both places
+        tickers = list(FUTURES.values())
+        try:
+            df = _download_multi(tickers, period="5d")
+        except Exception:
+            df = None
+
         result = {}
         for label, ticker in FUTURES.items():
             try:
-                t     = yf.Ticker(ticker)
-                info  = t.fast_info
-                price = getattr(info, "last_price", None) or getattr(info, "regularMarketPrice", None)
-                prev  = getattr(info, "previous_close", None)
-                if price and prev and prev > 0:
-                    pct = round((price - prev) / prev * 100, 2)
-                else:
-                    pct = None
-                result[label] = {
-                    "price": round(float(price), 2) if price else None,
-                    "pct_1d": pct,
-                }
+                price = pct = None
+                if df is not None and ticker in df.columns:
+                    series = df[ticker].dropna()
+                    if len(series) >= 2:
+                        price = round(float(series.iloc[-1]), 2)
+                        pct   = round(
+                            (series.iloc[-1] - series.iloc[-2]) / series.iloc[-2] * 100, 2
+                        )
+                # Fallback to fast_info if download missed this ticker
+                if price is None:
+                    t    = yf.Ticker(ticker)
+                    info = t.fast_info
+                    price = getattr(info, "last_price", None) or getattr(info, "regularMarketPrice", None)
+                    prev  = getattr(info, "previous_close", None)
+                    if price and prev and prev > 0:
+                        pct = round((float(price) - float(prev)) / float(prev) * 100, 2)
+                    price = round(float(price), 2) if price else None
+                result[label] = {"price": price, "pct_1d": pct}
             except Exception as exc:
                 logger.warning("Futures fetch failed for %s: %s", ticker, exc)
                 result[label] = {"price": None, "pct_1d": None}
