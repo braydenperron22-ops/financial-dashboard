@@ -347,34 +347,6 @@ WMO_CODES = {
     96:"Thunderstorm + Hail",99:"Heavy Thunderstorm + Hail",
 }
 
-@st.cache_data(ttl=900, show_spinner=False)
-def get_north_bay_weather():
-    """
-    Fetch current weather for North Bay, Ontario via Open-Meteo.
-    Free, no API key. Cached 30 minutes.
-    """
-    try:
-        import requests as _req
-        r = _req.get(
-            "https://api.open-meteo.com/v1/forecast"
-            "?latitude=46.3135&longitude=-79.4633"
-            "&current=temperature_2m,weathercode,windspeed_10m,apparent_temperature"
-            "&temperature_unit=celsius&windspeed_unit=kmh&timezone=America/Toronto",
-            timeout=8)
-        if r.status_code != 200:
-            return None
-        curr = r.json()["current"]
-        code = int(curr.get("weathercode", 0))
-        return {
-            "temp":       round(float(curr["temperature_2m"]), 1),
-            "feels_like": round(float(curr["apparent_temperature"]), 1),
-            "wind":       round(float(curr["windspeed_10m"]), 0),
-            "condition":  WMO_CODES.get(code, "Unknown"),
-            "code":       code,
-        }
-    except Exception:
-        return None
-
 BREAKING_KEYWORDS = [
     "breaking","urgent","fed","federal reserve","rate","cpi","gdp","inflation",
     "recession","crash","rally","surge","plunge","collapse","crisis","war",
@@ -384,6 +356,8 @@ BREAKING_KEYWORDS = [
     "jobs report","nonfarm","unemployment","fomc","hike","cut",
     "s&p","nasdaq","dow jones","tsx","tsx composite",
 ]
+def is_market_headline(t): return any(kw in t.lower() for kw in BREAKING_KEYWORDS)
+
 def sigma_class(sigma, base_colour: str = "") -> str:
     """
     Returns a CSS class string to apply pulsing if |sigma| > 2.5.
