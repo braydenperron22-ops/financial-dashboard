@@ -347,7 +347,7 @@ WMO_CODES = {
     96:"Thunderstorm + Hail",99:"Heavy Thunderstorm + Hail",
 }
 
-@st.cache_data(ttl=1800, show_spinner=False)
+@st.cache_data(ttl=900, show_spinner=False)
 def get_north_bay_weather():
     """
     Fetch current weather for North Bay, Ontario via Open-Meteo.
@@ -408,7 +408,7 @@ WMO_CODES = {
     96:"Thunderstorm + Hail",99:"Heavy Thunderstorm + Hail",
 }
 
-@st.cache_data(ttl=1800, show_spinner=False)
+@st.cache_data(ttl=900, show_spinner=False)
 def get_north_bay_weather():
     """
     Fetch current weather for North Bay, Ontario via Open-Meteo.
@@ -462,8 +462,8 @@ if is_night_mode():
             f'<div class="night-screen">'
             f'<div class="night-clock">{t_str}</div>'
             f'<div class="night-sub">{ampm} · new york et</div>'
-            f'<div style="font-size:18px;color:#c0c0c0;letter-spacing:2px;margin-top:10px;">{date_str}</div>'
-            f'<div style="font-size:16px;color:#c0c0c0;letter-spacing:1px;margin-top:10px;">🌡 {wx_line}</div>'
+            f'<div style="font-size:36px;font-weight:600;color:#c0c0c0;letter-spacing:3px;margin-top:16px;">{date_str}</div>'
+            f'<div style="font-size:28px;font-weight:500;color:#c0c0c0;letter-spacing:1px;margin-top:12px;">🌡 {wx_line}</div>'
             f'</div>', unsafe_allow_html=True)
     night_mode()
     st.stop()
