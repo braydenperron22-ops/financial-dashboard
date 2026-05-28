@@ -337,6 +337,44 @@ def price_colour(price, sma50, sma200, ath):
 def sector_name_colour(price, sma50, sma200, ath):
     return price_colour(price, sma50, sma200, ath)
 
+# Weather codes from Open-Meteo WMO standard
+WMO_CODES = {
+    0:"Clear",1:"Mostly Clear",2:"Partly Cloudy",3:"Overcast",
+    45:"Fog",48:"Icy Fog",51:"Light Drizzle",53:"Drizzle",55:"Heavy Drizzle",
+    61:"Light Rain",63:"Rain",65:"Heavy Rain",71:"Light Snow",73:"Snow",
+    75:"Heavy Snow",77:"Snow Grains",80:"Showers",81:"Showers",82:"Heavy Showers",
+    85:"Snow Showers",86:"Heavy Snow Showers",95:"Thunderstorm",
+    96:"Thunderstorm + Hail",99:"Heavy Thunderstorm + Hail",
+}
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def get_north_bay_weather():
+    """
+    Fetch current weather for North Bay, Ontario via Open-Meteo.
+    Free, no API key. Cached 30 minutes.
+    """
+    try:
+        import requests as _req
+        r = _req.get(
+            "https://api.open-meteo.com/v1/forecast"
+            "?latitude=46.3135&longitude=-79.4633"
+            "&current=temperature_2m,weathercode,windspeed_10m,apparent_temperature"
+            "&temperature_unit=celsius&windspeed_unit=kmh&timezone=America/Toronto",
+            timeout=8)
+        if r.status_code != 200:
+            return None
+        curr = r.json()["current"]
+        code = int(curr.get("weathercode", 0))
+        return {
+            "temp":       round(float(curr["temperature_2m"]), 1),
+            "feels_like": round(float(curr["apparent_temperature"]), 1),
+            "wind":       round(float(curr["windspeed_10m"]), 0),
+            "condition":  WMO_CODES.get(code, "Unknown"),
+            "code":       code,
+        }
+    except Exception:
+        return None
+
 BREAKING_KEYWORDS = [
     "breaking","urgent","fed","federal reserve","rate","cpi","gdp","inflation",
     "recession","crash","rally","surge","plunge","collapse","crisis","war",
@@ -360,7 +398,44 @@ def sigma_class(sigma, base_colour: str = "") -> str:
         return f"{base_colour} sigma-neg".strip()
     return base_colour
 
-def is_market_headline(t): return any(kw in t.lower() for kw in BREAKING_KEYWORDS)
+# Weather codes from Open-Meteo WMO standard
+WMO_CODES = {
+    0:"Clear",1:"Mostly Clear",2:"Partly Cloudy",3:"Overcast",
+    45:"Fog",48:"Icy Fog",51:"Light Drizzle",53:"Drizzle",55:"Heavy Drizzle",
+    61:"Light Rain",63:"Rain",65:"Heavy Rain",71:"Light Snow",73:"Snow",
+    75:"Heavy Snow",77:"Snow Grains",80:"Showers",81:"Showers",82:"Heavy Showers",
+    85:"Snow Showers",86:"Heavy Snow Showers",95:"Thunderstorm",
+    96:"Thunderstorm + Hail",99:"Heavy Thunderstorm + Hail",
+}
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def get_north_bay_weather():
+    """
+    Fetch current weather for North Bay, Ontario via Open-Meteo.
+    Free, no API key. Cached 30 minutes.
+    """
+    try:
+        import requests as _req
+        r = _req.get(
+            "https://api.open-meteo.com/v1/forecast"
+            "?latitude=46.3135&longitude=-79.4633"
+            "&current=temperature_2m,weathercode,windspeed_10m,apparent_temperature"
+            "&temperature_unit=celsius&windspeed_unit=kmh&timezone=America/Toronto",
+            timeout=8)
+        if r.status_code != 200:
+            return None
+        curr = r.json()["current"]
+        code = int(curr.get("weathercode", 0))
+        return {
+            "temp":       round(float(curr["temperature_2m"]), 1),
+            "feels_like": round(float(curr["apparent_temperature"]), 1),
+            "wind":       round(float(curr["windspeed_10m"]), 0),
+            "condition":  WMO_CODES.get(code, "Unknown"),
+            "code":       code,
+        }
+    except Exception:
+        return None
+
 
 # =============================================================================
 # SYNC MODE
@@ -373,14 +448,22 @@ sync_mode()
 if is_night_mode():
     @st.fragment(run_every=60)
     def night_mode():
-        tz     = pytz.timezone("America/New_York")
-        now_et = datetime.now(tz)
-        t_str  = now_et.strftime("%-I:%M")
-        ampm   = now_et.strftime("%p").lower()
+        tz       = pytz.timezone("America/New_York")
+        now_et   = datetime.now(tz)
+        t_str    = now_et.strftime("%-I:%M")
+        ampm     = now_et.strftime("%p").lower()
+        date_str = now_et.strftime("%A, %B %-d")
+        wx = get_north_bay_weather()
+        wx_line = (
+            f"{wx['condition']} · {wx['temp']}°C  Feels {wx['feels_like']}°C · Wind {wx['wind']:.0f} km/h"
+            if wx else "North Bay, ON"
+        )
         st.markdown(
             f'<div class="night-screen">'
             f'<div class="night-clock">{t_str}</div>'
-            f'<div class="night-sub">{ampm} · new york</div>'
+            f'<div class="night-sub">{ampm} · new york et</div>'
+            f'<div style="font-size:18px;color:#555;letter-spacing:2px;margin-top:10px;">{date_str}</div>'
+            f'<div style="font-size:15px;color:#383838;letter-spacing:1.5px;margin-top:14px;">🌡 {wx_line}</div>'
             f'</div>', unsafe_allow_html=True)
     night_mode()
     st.stop()
@@ -446,6 +529,17 @@ def ticker_bar():
     header   = get_header_ticker_data() or []
     fut_live = is_futures_active()
     items    = []
+
+    # Weather pill at the start of the tape
+    wx = get_north_bay_weather()
+    if wx:
+        items.append(
+            f'<span style="display:inline-block;margin:0 18px;font-size:13px;'
+            f'color:#90a4ae;background:rgba(144,164,174,.06);'
+            f'padding:2px 12px;border:1px solid rgba(144,164,174,.15);'
+            f'border-radius:2px;vertical-align:middle;font-weight:500;">'
+            f'🌡 North Bay {wx["temp"]}°C · {wx["condition"]} · '
+            f'💨 {wx["wind"]:.0f} km/h</span>')
 
     for h in header:
         if h["type"] == "section":
