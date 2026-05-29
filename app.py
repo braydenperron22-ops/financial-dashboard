@@ -419,27 +419,32 @@ sync_mode()
 # =============================================================================
 # NIGHT MODE
 # =============================================================================
+@st.fragment(run_every=60)
+def night_clock():
+    if not is_night_mode():
+        # Night mode ended — force full page rerun to load the dashboard
+        st.rerun()
+        return
+    tz       = pytz.timezone("America/New_York")
+    now_et   = datetime.now(tz)
+    t_str    = now_et.strftime("%-I:%M")
+    ampm     = now_et.strftime("%p").lower()
+    date_str = now_et.strftime("%A, %B %-d")
+    wx = get_north_bay_weather()
+    wx_line = (
+        f"{wx['condition']} · {wx['temp']}°C  Feels {wx['feels_like']}°C · Wind {wx['wind']:.0f} km/h"
+        if wx else "North Bay, ON"
+    )
+    st.markdown(
+        f'<div class="night-screen">'
+        f'<div class="night-clock">{t_str}</div>'
+        f'<div class="night-sub">{ampm} · new york et</div>'
+        f'<div style="font-size:36px;font-weight:600;color:#c0c0c0;letter-spacing:3px;margin-top:16px;">{date_str}</div>'
+        f'<div style="font-size:28px;font-weight:500;color:#c0c0c0;letter-spacing:1px;margin-top:12px;">🌡 {wx_line}</div>'
+        f'</div>', unsafe_allow_html=True)
+
 if is_night_mode():
-    @st.fragment(run_every=60)
-    def night_mode():
-        tz       = pytz.timezone("America/New_York")
-        now_et   = datetime.now(tz)
-        t_str    = now_et.strftime("%-I:%M")
-        ampm     = now_et.strftime("%p").lower()
-        date_str = now_et.strftime("%A, %B %-d")
-        wx = get_north_bay_weather()
-        wx_line = (
-            f"{wx['condition']} · {wx['temp']}°C  Feels {wx['feels_like']}°C · Wind {wx['wind']:.0f} km/h"
-            if wx else "North Bay, ON"
-        )
-        st.markdown(
-            f'<div class="night-screen">'
-            f'<div class="night-clock">{t_str}</div>'
-            f'<div class="night-sub">{ampm} · new york et</div>'
-            f'<div style="font-size:36px;font-weight:600;color:#c0c0c0;letter-spacing:3px;margin-top:16px;">{date_str}</div>'
-            f'<div style="font-size:28px;font-weight:500;color:#c0c0c0;letter-spacing:1px;margin-top:12px;">🌡 {wx_line}</div>'
-            f'</div>', unsafe_allow_html=True)
-    night_mode()
+    night_clock()
     st.stop()
 
 # =============================================================================
