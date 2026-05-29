@@ -347,16 +347,41 @@ WMO_CODES = {
     96:"Thunderstorm + Hail",99:"Heavy Thunderstorm + Hail",
 }
 
+# Strict market-relevant keywords — must be clearly financial/macro
 BREAKING_KEYWORDS = [
-    "breaking","urgent","fed","federal reserve","rate","cpi","gdp","inflation",
-    "recession","crash","rally","surge","plunge","collapse","crisis","war",
-    "oil","crude","opec","earnings","beat","miss","layoff","bankruptcy",
-    "tariff","trade","sanction","default","yield","bond","treasury",
-    "powell","yellen","trump","biden","election","geopolit",
-    "jobs report","nonfarm","unemployment","fomc","hike","cut",
-    "s&p","nasdaq","dow jones","tsx","tsx composite",
+    # Central banks & monetary policy
+    "federal reserve","fed rate","fomc","interest rate","rate cut","rate hike",
+    "rate decision","powell","basis point","quantitative",
+    "ecb","bank of england","bank of canada","bank of japan","boe","boj","boc",
+    # Key economic data
+    "cpi","inflation","pce","nonfarm payroll","jobs report","unemployment rate",
+    "gdp","retail sales","ism manufacturing","ism services",
+    # Markets
+    "s&p 500","nasdaq","dow jones","tsx","russell 2000","stock market","wall street",
+    "market crash","market rally","circuit breaker","trading halt",
+    "earnings beat","earnings miss","quarterly earnings","revenue miss","revenue beat",
+    # Assets
+    "crude oil","opec","oil prices","gold prices","bitcoin","crypto",
+    "treasury yield","10-year yield","bond yield","yield curve","inverted yield",
+    # Macro events
+    "recession","financial crisis","bank failure","default","bankruptcy","layoff",
+    "mass layoff","debt ceiling","government shutdown","tariff","trade war","sanction",
+    # Breaking severity
+    "breaking","flash crash","black swan","emergency rate",
 ]
-def is_market_headline(t): return any(kw in t.lower() for kw in BREAKING_KEYWORDS)
+
+# Explicit exclusion list — topics that contain keyword fragments but aren't market news
+EXCLUDE_KEYWORDS = [
+    "vat cut","pub","restaurant","cooking","recipe","celebrity","sport","football",
+    "cricket","rugby","weather forecast","travel","holiday","fashion","entertainment",
+    "film","movie","music","album","award","health tip","diet","fitness",
+]
+
+def is_market_headline(t: str) -> bool:
+    tl = t.lower()
+    if any(ex in tl for ex in EXCLUDE_KEYWORDS):
+        return False
+    return any(kw in tl for kw in BREAKING_KEYWORDS)
 
 def sigma_class(sigma, base_colour: str = "") -> str:
     """
