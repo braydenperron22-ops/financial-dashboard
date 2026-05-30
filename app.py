@@ -959,7 +959,7 @@ def bottom_row():
         rrl  = risk.get("risk_label", "—")
         # Pick the right period change to display alongside the 1M spread
         rr_chg = {
-            "1D":  risk.get("risk_pct_1d",  0) or 0,
+            "1D":  0 if (MODE == "1D" and in_reset_window()) else (risk.get("risk_pct_1d",  0) or 0),
             "1M":  risk.get("risk_pct_1m",  0) or 0,
             "YTD": risk.get("risk_pct_ytd", 0) or 0,
         }.get(MODE, 0)
@@ -982,7 +982,7 @@ def bottom_row():
         br  = risk.get("breadth_ratio") or 0
         brl = risk.get("breadth_label", "—")
         br_chg = {
-            "1D":  risk.get("breadth_chg_1d",  None),
+            "1D":  None if (MODE == "1D" and in_reset_window()) else risk.get("breadth_chg_1d",  None),
             "1M":  risk.get("breadth_chg_1m",  None),
             "YTD": risk.get("breadth_chg_ytd", None),
         }.get(MODE)
