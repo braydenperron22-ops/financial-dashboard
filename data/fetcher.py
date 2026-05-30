@@ -1367,55 +1367,76 @@ _IBIT_MER_DAILY       = 0.0025 / 365.25 # 0.25% annual fee
 
 def get_ibit_btc_data() -> Dict[str, Any]:
     """
-    Fetch IBIT price and BTC spot price.
-    Calculates:
-      - adjusted multiplier (MER-adjusted since inception)
-      - implied BTC price from IBIT
-      - divergence % = (implied - actual) / actual * 100
-    Positive divergence = BTC trading below IBIT implied → bullish for IBIT open
-    Negative divergence = BTC trading above IBIT implied → bearish for IBIT open
-    Cached 60 seconds — used for live divergence tracking.
+    BTC after-hours / weekend tracker.
+
+    During market hours (9:30am-4:15pm ET weekdays):
+        Returns IBIT live % change for the BTC row.
+
+    After close and weekends:
+        Compares BTC live spot price to the most recent 4pm ET close.
+        Divergence = (live / close) - 1
+        Positive = BTC up since close → IBIT likely opens higher
+        Negative = BTC down since close → IBIT likely opens lower
+
+    Cached 60 seconds.
     """
-    key = "ibit_btc_divergence"
+    key = "ibit_btc_divergence_v2"
 
     def _fetch():
         try:
-            from datetime import date as _date
-            today     = datetime.now(pytz.timezone("America/New_York")).date()
-            inception = _date(*_IBIT_INCEPTION)
-            days_since= (today - inception).days
+            tz_et = pytz.timezone("America/New_York")
+            now   = datetime.now(tz_et)
 
-            # Adjusted multiplier accounts for daily fee drag
-            adj_mult  = _IBIT_BASE_MULTIPLIER * ((1 + _IBIT_MER_DAILY) ** days_since)
-
-            df = _download_multi(["IBIT", "BTC-USD"], period="2d")
+            # Fetch BTC hourly data for last 7 days to find the 4pm close
+            btc = yf.Ticker("BTC-USD")
+            df  = btc.history(period="7d", interval="1h")
             if df.empty:
                 return None
 
-            ibit_px = btc_px = None
-            if isinstance(df.columns, pd.MultiIndex):
-                if "IBIT"    in df.columns.get_level_values(1): ibit_px = float(df["Close"]["IBIT"].dropna().iloc[-1])
-                if "BTC-USD" in df.columns.get_level_values(1): btc_px  = float(df["Close"]["BTC-USD"].dropna().iloc[-1])
+            # Convert index to ET
+            df.index = df.index.tz_convert(tz_et)
+
+            # Live price = most recent close
+            btc_live = round(float(df["Close"].iloc[-1]), 2)
+
+            # Find last 4pm ET close (weekday only)
+            closes_4pm = df[
+                (df.index.weekday < 5) &
+                (df.index.hour == 16) &
+                (df.index.minute == 0)
+            ]["Close"]
+
+            if closes_4pm.empty:
+                # Fallback: use daily close
+                daily = _download_multi(["BTC-USD"], period="5d")
+                if not daily.empty:
+                    series = (daily["Close"]["BTC-USD"] if isinstance(daily.columns, pd.MultiIndex)
+                              else daily["Close"]).dropna()
+                    btc_close = round(float(series.iloc[-1]), 2)
+                else:
+                    return None
             else:
-                # Single ticker fallback
-                series = df["Close"].dropna()
-                if len(series): ibit_px = float(series.iloc[-1])
+                btc_close = round(float(closes_4pm.iloc[-1]), 2)
 
-            if ibit_px is None or btc_px is None:
-                return None
+            divergence = round((btc_live / btc_close - 1) * 100, 2)
 
-            implied_btc = ibit_px * adj_mult
-            divergence  = round((btc_px / implied_btc - 1) * 100, 3)  # matches Sheets: (N82/N81)-1
+            # Also fetch IBIT for market hours display
+            ibit_px = None
+            try:
+                ibit_df = yf.Ticker("IBIT").history(period="2d", interval="1h")
+                if not ibit_df.empty:
+                    ibit_px = round(float(ibit_df["Close"].iloc[-1]), 2)
+            except Exception:
+                pass
 
             return {
-                "ibit_price":   round(ibit_px, 2),
-                "btc_price":    round(btc_px, 2),
-                "implied_btc":  round(implied_btc, 2),
-                "divergence":   divergence,   # % — positive = BTC cheap vs IBIT
-                "adj_mult":     round(adj_mult, 4),
+                "btc_live":   btc_live,
+                "btc_close":  btc_close,
+                "ibit_price": ibit_px,
+                "divergence": divergence,
             }
         except Exception as exc:
-            logger.warning("IBIT/BTC divergence fetch failed: %s", exc)
+            logger.warning("BTC after-hours fetch failed: %s", exc)
             return None
 
     return fetch_with_cache(key, _fetch, ttl=60) or {}
