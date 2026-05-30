@@ -602,17 +602,18 @@ def get_market_confidence_index() -> Dict[str, Any]:
     """
     key = "mci_data"
 
-    def _mci_formula(vix_val: float) -> float:
-        import math
-        return max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix_val - 14.0))))
-
     def _fetch():
+        import math
         vol    = get_volatility_data()
         vix    = vol.get("vix_current", 20.0) if vol else 20.0
         vix_ma = vol.get("vix_30dma",   20.0) if vol else 20.0
 
-        score_vix   = _mci_formula(vix)
-        score_vix30 = _mci_formula(vix_ma)
+        # Google Sheets formula — both components anchored to 14:
+        # score_vix   = MAX(0, MIN(99, 100 * EXP(-0.08 * (VIX   - 14))))
+        # score_vix30 = MAX(0, MIN(99, 100 * EXP(-0.08 * (VIX30 - 14))))
+        # MCI = (score_vix + score_vix30) / 2
+        score_vix   = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix    - 14.0))))
+        score_vix30 = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix_ma - 14.0))))
         score       = round((score_vix + score_vix30) / 2.0, 1)
 
         # 9-level IFS scale (#14)
