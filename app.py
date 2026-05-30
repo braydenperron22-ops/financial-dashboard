@@ -874,7 +874,7 @@ with col_port:
             if div is not None:
                 div_col    = "#00e676" if div >= 0 else "#ff1744"
                 div_ar     = "▲" if div >= 0 else "▼"
-                btc_ch_cls = ""
+                btc_ch_cls = "pos" if div >= 0 else "neg"
                 btc_ch     = f'{div_ar}{abs(div):.2f}%'
                 btc_lbl    = f"IBIT IMPLIED ${fp(implied,0) if implied else '—'}"
             else:
