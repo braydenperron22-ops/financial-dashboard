@@ -545,17 +545,23 @@ def get_volatility_data() -> Dict[str, Any]:
         vix_status  : str    e.g. "Elevated", "Normal", "Suppressed"
         history     : dict   dates / vix_values / sma30 lists for charting
     """
-    key = "volatility_data"
+    key = "volatility_data_v3"
 
     def _fetch():
         df = _download_history(VIX_TICKER, period="1y")
         if df.empty:
             return None
         close = df["Close"].dropna()
-        sma30 = close.rolling(30).mean()
+        sma30 = close.rolling(21).mean()  # 21 trading days ≈ 30 calendar days
 
-        current = float(close.iloc[-1])
-        ma30    = float(sma30.iloc[-1])
+        # Try to get live intraday VIX first (matches GOOGLEFINANCE behaviour)
+        try:
+            live = yf.Ticker(VIX_TICKER).fast_info.last_price
+            current = float(live) if live else float(close.iloc[-1])
+        except Exception:
+            current = float(close.iloc[-1])
+
+        ma30 = float(sma30.iloc[-1])
 
         # Status label based on VIX level
         if current > 30:
@@ -600,7 +606,7 @@ def get_market_confidence_index() -> Dict[str, Any]:
         VIX = 30  → score ~  24
         VIX = 45  → score ~   6  (near zero — extreme fear)
     """
-    key = "mci_data_v3"
+    key = "mci_data_v4"
 
     def _fetch():
         import math
@@ -612,7 +618,7 @@ def get_market_confidence_index() -> Dict[str, Any]:
         # score_vix   = MAX(0, MIN(99, 100 * EXP(-0.08 * (VIX   - 14))))
         # score_vix30 = MAX(0, MIN(99, 100 * EXP(-0.08 * (VIX30 - 14))))
         # MCI = (score_vix + score_vix30) / 2
-        score_vix   = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix    - 14.0))))
+        score_vix   = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix    - 15.0))))  # anchor 15
         score_vix30 = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix_ma - 14.0))))
         score       = round((score_vix + score_vix30) / 2.0, 1)
 
