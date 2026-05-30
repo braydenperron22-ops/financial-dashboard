@@ -1355,6 +1355,72 @@ def is_tsx_holiday(check_date: date = None) -> bool:
 
 
 # =============================================================================
+# SECTION 19b — IBIT / BTC DIVERGENCE
+# =============================================================================
+
+# Base multiplier: 1 IBIT share ≈ 1/1763.160535644 BTC
+# Adjusted daily for IBIT's 0.25% MER since inception Jan 21, 2026
+_IBIT_BASE_MULTIPLIER = 1763.160535644
+_IBIT_INCEPTION       = (2026, 1, 21)   # DATE(2026,1,21) from your Sheets formula
+_IBIT_MER_DAILY       = 0.0025 / 365.25 # 0.25% annual fee
+
+def get_ibit_btc_data() -> Dict[str, Any]:
+    """
+    Fetch IBIT price and BTC spot price.
+    Calculates:
+      - adjusted multiplier (MER-adjusted since inception)
+      - implied BTC price from IBIT
+      - divergence % = (implied - actual) / actual * 100
+    Positive divergence = BTC trading below IBIT implied → bullish for IBIT open
+    Negative divergence = BTC trading above IBIT implied → bearish for IBIT open
+    Cached 60 seconds — used for live divergence tracking.
+    """
+    key = "ibit_btc_divergence"
+
+    def _fetch():
+        try:
+            from datetime import date as _date
+            today     = datetime.now(pytz.timezone("America/New_York")).date()
+            inception = _date(*_IBIT_INCEPTION)
+            days_since= (today - inception).days
+
+            # Adjusted multiplier accounts for daily fee drag
+            adj_mult  = _IBIT_BASE_MULTIPLIER * ((1 + _IBIT_MER_DAILY) ** days_since)
+
+            df = _download_multi(["IBIT", "BTC-USD"], period="2d")
+            if df.empty:
+                return None
+
+            ibit_px = btc_px = None
+            if isinstance(df.columns, pd.MultiIndex):
+                if "IBIT"    in df.columns.get_level_values(1): ibit_px = float(df["Close"]["IBIT"].dropna().iloc[-1])
+                if "BTC-USD" in df.columns.get_level_values(1): btc_px  = float(df["Close"]["BTC-USD"].dropna().iloc[-1])
+            else:
+                # Single ticker fallback
+                series = df["Close"].dropna()
+                if len(series): ibit_px = float(series.iloc[-1])
+
+            if ibit_px is None or btc_px is None:
+                return None
+
+            implied_btc = ibit_px * adj_mult
+            divergence  = round((implied_btc - btc_px) / btc_px * 100, 3)
+
+            return {
+                "ibit_price":   round(ibit_px, 2),
+                "btc_price":    round(btc_px, 2),
+                "implied_btc":  round(implied_btc, 2),
+                "divergence":   divergence,   # % — positive = BTC cheap vs IBIT
+                "adj_mult":     round(adj_mult, 4),
+            }
+        except Exception as exc:
+            logger.warning("IBIT/BTC divergence fetch failed: %s", exc)
+            return None
+
+    return fetch_with_cache(key, _fetch, ttl=60) or {}
+
+
+# =============================================================================
 # SECTION 20 — PRE-MARKET FUTURES (6:30am–9:30am ET weekdays)
 # =============================================================================
 

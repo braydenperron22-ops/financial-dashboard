@@ -13,6 +13,7 @@ from data.fetcher import (
     get_chart_data, prefetch_all,
     is_us_holiday, is_tsx_holiday,
     get_futures_data,
+    get_ibit_btc_data,
 )
 
 st.set_page_config(page_title="MARKET TERMINAL", layout="wide",
@@ -372,6 +373,14 @@ def is_market_headline(t: str) -> bool:
     if any(ex in tl for ex in EXCLUDE_KEYWORDS):
         return False
     return any(kw in tl for kw in BREAKING_KEYWORDS)
+
+def is_market_session() -> bool:
+    """True during regular market hours 9:30am-4:15pm ET weekdays."""
+    tz  = pytz.timezone("America/New_York")
+    now = datetime.now(tz)
+    if now.weekday() >= 5: return False
+    t = now.hour * 60 + now.minute
+    return 9 * 60 + 30 <= t < 16 * 60 + 15
 
 def sigma_class(sigma, base_colour: str = "") -> str:
     """
@@ -847,6 +856,37 @@ with col_port:
             f'<div class="stat-val {cl(alpha)}">'
             f'{f"{alpha:+.0f} bps" if alpha is not None else "—"}</div></div>'
             f'</div>')
+        # ── IBIT / BTC change column logic ───────────────────────────────────
+        # Price is always BTC spot — only the change column switches
+        ibit_data = get_ibit_btc_data() or {}
+        mkt_open  = is_market_session()
+
+        if mkt_open and KEY == "pct_1d":
+            # Market hours 1D → show IBIT % change
+            ibit_px  = ibit_data.get("ibit_price")
+            btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc)
+            btc_ch     = f"{ba}{bd}"
+            btc_lbl    = "IBIT · 20% WEIGHT"
+        elif not mkt_open and KEY == "pct_1d":
+            # Closed 1D → show IBIT implied vs BTC divergence
+            div     = ibit_data.get("divergence")
+            implied = ibit_data.get("implied_btc")
+            if div is not None:
+                div_col    = "#00e676" if div >= 0 else "#ff1744"
+                div_ar     = "▲" if div >= 0 else "▼"
+                btc_ch_cls = ""
+                btc_ch     = f'{div_ar}{abs(div):.2f}%'
+                btc_lbl    = f"IBIT IMPLIED ${fp(implied,0) if implied else '—'}"
+            else:
+                btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc)
+                btc_ch     = f"{ba}{bd}"
+                btc_lbl    = "20% WEIGHT · 24/7"
+        else:
+            # 1M / YTD → always show BTC period change
+            btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc)
+            btc_ch     = f"{ba}{bd}"
+            btc_lbl    = "20% WEIGHT · 24/7"
+
         table = (
             f'<div class="pt-hd" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div>Ticker</div><div>Price</div><div>Change ({MODE})</div>'
@@ -854,16 +894,16 @@ with col_port:
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">XEQT</div>'
             f'<div class="pt-px" style="color:{xeqt_pcol};">{fp(xeqt_px)}</div>'
-            f'<div class="pt-ch {sigma_class(xeqt.get("sigma_1d"), xc)}">{xa}{xd}</div>'  
+            f'<div class="pt-ch {sigma_class(xeqt.get("sigma_1d"), xc)}">{xa}{xd}</div>'
             f'<div style="text-align:right;">'
             f'<div class="pt-ret {rc}">{ra}{rd}</div>'
             f'<div class="pt-wt">{"TSX HOLIDAY" if x_hol else "BLENDED 80/20"}</div></div></div>'
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">BTC</div>'
             f'<div class="pt-px" style="color:{btc_pcol};">${fp(btc_px,0)}</div>'
-            f'<div class="pt-ch {sigma_class(btc.get("sigma_1d"), bc)}">{ba}{bd}</div>'  
+            f'<div class="pt-ch {btc_ch_cls}">{btc_ch}</div>'
             f'<div style="text-align:right;">'
-            f'<div class="pt-wt" style="margin-top:18px;">20% WEIGHT · 24/7</div>'
+            f'<div class="pt-wt" style="margin-top:18px;">{btc_lbl}</div>'
             f'</div></div></div>')
         st.markdown(
             f'<div class="card"><div class="card-hdr">'
