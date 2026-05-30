@@ -778,15 +778,15 @@ with col_mci:
 
         # Per-label colour and style — each of the 9 levels is distinct
         LABEL_STYLES = {
-            "Euphoria":       "color:#39ff14;font-size:22px;font-weight:700;letter-spacing:2px;",
-            "Very Confident": "color:#00e676;font-size:20px;font-weight:700;letter-spacing:1px;",
-            "Confident":      "color:#00c853;font-size:22px;font-weight:700;letter-spacing:2px;",
+            "Euphoria":       "color:#00e676;font-size:22px;font-weight:700;letter-spacing:2px;",
+            "Very Confident": "color:#4caf50;font-size:20px;font-weight:700;letter-spacing:1px;",
+            "Confident":      "color:#8bc34a;font-size:22px;font-weight:700;letter-spacing:2px;",
             "Cautious":       "color:#ffd54f;font-size:21px;font-weight:700;letter-spacing:2px;",
-            "Neutral":        "color:#90a4ae;font-size:22px;font-weight:600;letter-spacing:3px;",
-            "Defensive":      "color:#ffb300;font-size:21px;font-weight:700;letter-spacing:1px;",
-            "Concerned":      "color:#ff9800;font-size:21px;font-weight:800;letter-spacing:1px;",
-            "Fear":           "color:#ff1744;font-size:22px;font-weight:800;letter-spacing:2px;",
-            "Panic":          "color:#ff0000;font-size:24px;font-weight:900;letter-spacing:3px;",
+            "Neutral":        "color:#ff9800;font-size:22px;font-weight:600;letter-spacing:3px;",
+            "Defensive":      "color:#ff6f00;font-size:21px;font-weight:700;letter-spacing:1px;",
+            "Concerned":      "color:#e53935;font-size:21px;font-weight:800;letter-spacing:1px;",
+            "Fear":           "color:#b71c1c;font-size:22px;font-weight:800;letter-spacing:2px;",
+            "Panic":          "color:#7f0000;font-size:24px;font-weight:900;letter-spacing:3px;",
         }
         lbl_style = LABEL_STYLES.get(mlabel, "color:#ffffff;font-size:20px;font-weight:700;")
 
