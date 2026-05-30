@@ -963,9 +963,8 @@ def bottom_row():
             "1M":  risk.get("risk_pct_1m",  0) or 0,
             "YTD": risk.get("risk_pct_ytd", 0) or 0,
         }.get(MODE, 0)
-        tag = {"Euphoric":"tag-euph","Aggressive":"tag-agg","Risk-On":"tag-on",
-               "Risk-Leaning":"tag-lean","Neutral":"tag-neu","Defensive":"tag-def",
-               "Risk-Off":"tag-off","Panic":"tag-pan"}.get(rrl,"tag-neu")
+        RR_STYLES = {'Euphoric': 'color:#00e676;background:rgba(0,230,118,0.12);border:2px solid rgba(0,230,118,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Aggressive': 'color:#4caf50;background:rgba(76,175,80,0.12);border:2px solid rgba(76,175,80,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Risk-On': 'color:#8bc34a;background:rgba(139,195,74,0.12);border:2px solid rgba(139,195,74,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Risk-Leaning': 'color:#cddc39;background:rgba(205,220,57,0.12);border:2px solid rgba(205,220,57,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Neutral': 'color:#ffd54f;background:rgba(255,213,79,0.12);border:2px solid rgba(255,213,79,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Defensive': 'color:#ff9800;background:rgba(255,152,0,0.12);border:2px solid rgba(255,152,0,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Risk-Off': 'color:#e53935;background:rgba(229,57,53,0.12);border:2px solid rgba(229,57,53,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Panic': 'color:#7f0000;background:rgba(127,0,0,0.2);border:2px solid rgba(127,0,0,0.6);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;'}
+        rr_style = RR_STYLES.get(rrl, RR_STYLES["Neutral"])
         period_lbl = {"1D":"TODAY","1M":"1 MONTH","YTD":"YEAR TO DATE"}[MODE]
         st.markdown(
             f'<div class="card" style="border-right:2px solid #333333;">'
@@ -976,7 +975,7 @@ def bottom_row():
             f'<div class="big-sub">HYG / LQD RATIO</div>'
             f'<div class="big-chg {cl(rr_chg)}" style="font-size:17px;">{ar(rr_chg)}&nbsp;{fpc(rr_chg)}</div>'
             f'<div style="font-size:12px;color:#aaaaaa;letter-spacing:1px;margin-top:3px;font-weight:500;">{period_lbl} CHANGE</div>'
-            f'<div><span class="tag {tag}">{rrl}</span></div>'
+            f'<div style="text-align:center;margin-top:8px;"><span style="{rr_style}">{rrl}</span></div>'
             f'</div></div>', unsafe_allow_html=True)
 
     with c3:
@@ -987,11 +986,8 @@ def bottom_row():
             "1M":  risk.get("breadth_chg_1m",  None),
             "YTD": risk.get("breadth_chg_ytd", None),
         }.get(MODE)
-        tag = {"Maximum Breadth":"tag-euph","Solid Breadth":"tag-agg",
-               "Risk-On Rotation":"tag-on","Healthy Participation":"tag-lean",
-               "Neutral Breadth":"tag-neu","Broadening-Out":"tag-lean",
-               "Thin Participation":"tag-def","High Concentration":"tag-nar",
-               "Severe Divergence":"tag-off","Apex Concentration":"tag-pan"}.get(brl,"tag-neu")
+        BR_STYLES = {'Maximum Breadth': 'color:#00e676;background:rgba(0,230,118,0.12);border:2px solid rgba(0,230,118,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Solid Breadth': 'color:#4caf50;background:rgba(76,175,80,0.12);border:2px solid rgba(76,175,80,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Healthy Participation': 'color:#8bc34a;background:rgba(139,195,74,0.12);border:2px solid rgba(139,195,74,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Fair Participation': 'color:#cddc39;background:rgba(205,220,57,0.12);border:2px solid rgba(205,220,57,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Thin Participation': 'color:#ffd54f;background:rgba(255,213,79,0.1);border:2px solid rgba(255,213,79,0.3);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Concentrated': 'color:#ff9800;background:rgba(255,152,0,0.12);border:2px solid rgba(255,152,0,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'High Concentration': 'color:#e53935;background:rgba(229,57,53,0.12);border:2px solid rgba(229,57,53,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Neutral Breadth': 'color:#ffd54f;background:rgba(255,213,79,0.12);border:2px solid rgba(255,213,79,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Apex Concentration': 'color:#b71c1c;background:rgba(183,28,28,0.15);border:2px solid rgba(183,28,28,0.5);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Severe Divergence': 'color:#7f0000;background:rgba(127,0,0,0.2);border:2px solid rgba(127,0,0,0.6);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Risk-On Rotation': 'color:#8bc34a;background:rgba(139,195,74,0.12);border:2px solid rgba(139,195,74,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;', 'Broadening-Out': 'color:#cddc39;background:rgba(205,220,57,0.12);border:2px solid rgba(205,220,57,0.4);padding:4px 14px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;display:inline-block;'}
+        br_style = BR_STYLES.get(brl, BR_STYLES["Neutral Breadth"])
         period_lbl = {"1D":"TODAY","1M":"1 MONTH","YTD":"YEAR TO DATE"}[MODE]
         # Convert ratio change to percentage for readability
         br_chg_pct = round(br_chg * 100, 3) if br_chg is not None else None
@@ -1007,7 +1003,7 @@ def bottom_row():
             f'<div class="big-sub">RSP / SPY · 10-LEVEL</div>'
             f'<div class="big-chg {br_chg_cl}" style="font-size:17px;">{br_chg_ar}&nbsp;{br_chg_str}</div>'
             f'<div style="font-size:12px;color:#aaaaaa;letter-spacing:1px;margin-top:3px;font-weight:500;">{period_lbl} CHANGE</div>'
-            f'<div><span class="tag {tag}">{brl}</span></div>'
+            f'<div style="text-align:center;margin-top:8px;"><span style="{br_style}">{brl}</span></div>'
             f'</div></div>', unsafe_allow_html=True)
 
     with c4:
