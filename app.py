@@ -870,13 +870,13 @@ with col_port:
         elif not mkt_open and KEY == "pct_1d":
             # Closed 1D → show IBIT implied vs BTC divergence
             div     = ibit_data.get("divergence")
-            implied = ibit_data.get("implied_btc")
             if div is not None:
                 div_col    = "#00e676" if div >= 0 else "#ff1744"
                 div_ar     = "▲" if div >= 0 else "▼"
                 btc_ch_cls = "pos" if div >= 0 else "neg"
                 btc_ch     = f'{div_ar}{abs(div):.2f}%'
-                btc_lbl    = f"IBIT IMPLIED ${fp(implied,0) if implied else '—'}"
+                btc_close  = ibit_data.get("btc_close")
+                btc_lbl    = f"SNAPSHOT ${fp(btc_close,0)} · BASELINE"
             else:
                 btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc)
                 btc_ch     = f"{ba}{bd}"
