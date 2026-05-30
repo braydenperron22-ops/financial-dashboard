@@ -794,7 +794,7 @@ with col_mci:
             f'<div class="card" style="border-right:2px solid #333333;">'
             f'<div class="card-hdr">Market Confidence</div>'
             f'<div class="mci-num" style="color:#ffffff;">{score:.0f}</div>'
-            f'<div class="mci-lbl" style="{lbl_style}">{mlabel}</div>'
+            f'<div style="text-align:center;margin-top:4px;"><span style="{lbl_style}">{mlabel}</span></div>'
             f'<div class="vix-duo">'
             f'<div class="vix-blk">'
             f'<div class="vix-l">VIX</div>'
