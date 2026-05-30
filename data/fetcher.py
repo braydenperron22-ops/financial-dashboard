@@ -600,7 +600,7 @@ def get_market_confidence_index() -> Dict[str, Any]:
         VIX = 30  → score ~  24
         VIX = 45  → score ~   6  (near zero — extreme fear)
     """
-    key = "mci_data"
+    key = "mci_data_v2"
 
     def _fetch():
         import math
