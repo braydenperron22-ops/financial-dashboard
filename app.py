@@ -778,15 +778,15 @@ with col_mci:
 
         # Per-label colour and style — each of the 9 levels is distinct
         LABEL_STYLES = {
-            "Euphoria":       "color:#00e676;font-size:22px;font-weight:700;letter-spacing:2px;",
-            "Very Confident": "color:#4caf50;font-size:20px;font-weight:700;letter-spacing:1px;",
-            "Confident":      "color:#8bc34a;font-size:22px;font-weight:700;letter-spacing:2px;",
-            "Cautious":       "color:#ffd54f;font-size:21px;font-weight:700;letter-spacing:2px;",
-            "Neutral":        "color:#ff9800;font-size:22px;font-weight:600;letter-spacing:3px;",
-            "Defensive":      "color:#ff6f00;font-size:21px;font-weight:700;letter-spacing:1px;",
-            "Concerned":      "color:#e53935;font-size:21px;font-weight:800;letter-spacing:1px;",
-            "Fear":           "color:#b71c1c;font-size:22px;font-weight:800;letter-spacing:2px;",
-            "Panic":          "color:#7f0000;font-size:24px;font-weight:900;letter-spacing:3px;",
+            "Euphoria":       "color:#00e676;background:rgba(0,230,118,.12);border:2px solid rgba(0,230,118,.4);padding:5px 18px;border-radius:4px;font-size:19px;font-weight:700;letter-spacing:2px;display:inline-block;",
+            "Very Confident": "color:#4caf50;background:rgba(76,175,80,.12);border:2px solid rgba(76,175,80,.4);padding:5px 18px;border-radius:4px;font-size:18px;font-weight:700;letter-spacing:1px;display:inline-block;",
+            "Confident":      "color:#8bc34a;background:rgba(139,195,74,.12);border:2px solid rgba(139,195,74,.4);padding:5px 18px;border-radius:4px;font-size:19px;font-weight:700;letter-spacing:2px;display:inline-block;",
+            "Cautious":       "color:#ffd54f;background:rgba(255,213,79,.12);border:2px solid rgba(255,213,79,.4);padding:5px 18px;border-radius:4px;font-size:18px;font-weight:700;letter-spacing:2px;display:inline-block;",
+            "Neutral":        "color:#ff9800;background:rgba(255,152,0,.12);border:2px solid rgba(255,152,0,.4);padding:5px 18px;border-radius:4px;font-size:19px;font-weight:600;letter-spacing:3px;display:inline-block;",
+            "Defensive":      "color:#ff6f00;background:rgba(255,111,0,.12);border:2px solid rgba(255,111,0,.4);padding:5px 18px;border-radius:4px;font-size:18px;font-weight:700;letter-spacing:1px;display:inline-block;",
+            "Concerned":      "color:#e53935;background:rgba(229,57,53,.12);border:2px solid rgba(229,57,53,.4);padding:5px 18px;border-radius:4px;font-size:18px;font-weight:800;letter-spacing:1px;display:inline-block;",
+            "Fear":           "color:#b71c1c;background:rgba(183,28,28,.15);border:2px solid rgba(183,28,28,.5);padding:5px 18px;border-radius:4px;font-size:19px;font-weight:800;letter-spacing:2px;display:inline-block;",
+            "Panic":          "color:#7f0000;background:rgba(127,0,0,.2);border:2px solid rgba(127,0,0,.6);padding:5px 18px;border-radius:4px;font-size:21px;font-weight:900;letter-spacing:3px;display:inline-block;",
         }
         lbl_style = LABEL_STYLES.get(mlabel, "color:#ffffff;font-size:20px;font-weight:700;")
 
