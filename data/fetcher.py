@@ -1405,7 +1405,7 @@ def get_ibit_btc_data() -> Dict[str, Any]:
                 return None
 
             implied_btc = ibit_px * adj_mult
-            divergence  = round((implied_btc - btc_px) / btc_px * 100, 3)
+            divergence  = round((btc_px / implied_btc - 1) * 100, 3)  # matches Sheets: (N82/N81)-1
 
             return {
                 "ibit_price":   round(ibit_px, 2),
