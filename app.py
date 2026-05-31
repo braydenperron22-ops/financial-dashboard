@@ -975,7 +975,7 @@ def bottom_row():
         rrl  = risk.get("risk_label", "—")
         # Pick the right period change to display alongside the 1M spread
         rr_chg = {
-            "1D":  0 if (MODE == "1D" and in_reset_window()) else (risk.get("risk_pct_1d",  0) or 0),
+            "1D":  None if (MODE == "1D" and in_reset_window()) else (risk.get("risk_pct_1d",  0) or 0),
             "1M":  risk.get("risk_pct_1m",  0) or 0,
             "YTD": risk.get("risk_pct_ytd", 0) or 0,
         }.get(MODE, 0)
@@ -987,9 +987,9 @@ def bottom_row():
             f'<div class="card-hdr" style="justify-content:center;">'
             f'Risk Rotation&nbsp;{badge(MODE)}</div>'
             f'<div class="big-wrap">'
-            f'<div class="big-num t0">{"—" if in_reset_window() else f"{rr:.3f}"}</div>'
+            f'<div class="big-num t0">{rr:.3f}</div>'
             f'<div class="big-sub">HYG / LQD RATIO</div>'
-            f'<div class="big-chg {cl(rr_chg)}" style="font-size:17px;">{ar(rr_chg)}&nbsp;{fpc(rr_chg)}</div>'
+            f'<div class="big-chg {cl(rr_chg) if rr_chg is not None else "t2"}" style="font-size:17px;">{ar(rr_chg) + "&nbsp;" + fpc(rr_chg) if rr_chg is not None else "—"}</div>'
             f'<div style="font-size:12px;color:#aaaaaa;letter-spacing:1px;margin-top:3px;font-weight:500;">{period_lbl} CHANGE</div>'
             f'<div style="text-align:center;margin-top:8px;"><span style="{rr_style}">{rrl}</span></div>'
             f'</div></div>', unsafe_allow_html=True)
@@ -1015,7 +1015,7 @@ def bottom_row():
             f'<div class="card-hdr" style="justify-content:center;">'
             f'Breadth&nbsp;{badge(MODE)}</div>'
             f'<div class="big-wrap">'
-            f'<div class="big-num t0">{"—" if in_reset_window() else f"{br:.3f}"}</div>'
+            f'<div class="big-num t0">{br:.3f}</div>'
             f'<div class="big-sub">RSP / SPY · 10-LEVEL</div>'
             f'<div class="big-chg {br_chg_cl}" style="font-size:17px;">{br_chg_ar}&nbsp;{br_chg_str}</div>'
             f'<div style="font-size:12px;color:#aaaaaa;letter-spacing:1px;margin-top:3px;font-weight:500;">{period_lbl} CHANGE</div>'
