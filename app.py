@@ -600,8 +600,15 @@ def ticker_bar():
                 c, a, d = "t0", "", "0.00%"
             else:
                 c, a, d = cl(raw), ar(raw), fpc(raw) if raw is not None else ("t2","","—")
-        elif is_crypto or is_forex:
+        elif is_crypto:
+            # Crypto always live 24/7
             c, a, d = cl(raw), ar(raw), fpc(raw) if raw is not None else ("t2","","—")
+        elif is_forex:
+            # Forex on exact same schedule as futures (is_futures_active)
+            if not fut_live:
+                c, a, d = "t0", "", "0.00%"
+            else:
+                c, a, d = cl(raw), ar(raw), fpc(raw) if raw is not None else ("t2","","—")
         else:
             c, a, d = fmt_1d(raw)
 
