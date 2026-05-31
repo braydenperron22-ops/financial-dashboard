@@ -608,7 +608,7 @@ def get_market_confidence_index() -> Dict[str, Any]:
 
     Historical MCI scores stored for period change display (1D/1M/YTD).
     """
-    key = "mci_data_v7"
+    key = "mci_data_v8"
 
     def _fetch():
         import math
@@ -622,42 +622,45 @@ def get_market_confidence_index() -> Dict[str, Any]:
         score_vix30 = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix_ma - 14.0))))
 
         # ── Credit (HYG/LQD) z-score component ───────────────────────────
-        # 1-year lookback so we measure vs recent conditions, not old regimes
-        # Positive z = ratio above 1yr mean = tight credit = good
-        # We compare today vs the rolling mean EXCLUDING today (iloc[:-1])
         score_credit = 50.0
         try:
             df_cr = _download_multi([HYG_TICKER, "LQD"], period="1y")
-            if HYG_TICKER in df_cr.columns and "LQD" in df_cr.columns:
-                hyg_s  = df_cr[HYG_TICKER].dropna()
-                lqd_s  = df_cr["LQD"].dropna()
+            # Handle both MultiIndex and flat column structures
+            def _get_series(df, ticker):
+                if isinstance(df.columns, pd.MultiIndex):
+                    if ticker in df.columns.get_level_values(1):
+                        return df.xs(ticker, level=1, axis=1).iloc[:, 0].dropna()
+                elif ticker in df.columns:
+                    return df[ticker].dropna()
+                return None
+
+            hyg_s = _get_series(df_cr, HYG_TICKER)
+            lqd_s = _get_series(df_cr, "LQD")
+            if hyg_s is not None and lqd_s is not None:
                 paired = pd.concat([hyg_s, lqd_s], axis=1).dropna()
                 paired.columns = ["hyg", "lqd"]
                 ratio  = (paired["hyg"] / paired["lqd"]).dropna()
                 if len(ratio) >= 30:
-                    history = ratio.iloc[:-1]   # exclude today
+                    history = ratio.iloc[:-1]
                     mu      = float(history.mean())
                     sigma   = float(history.std())
                     today   = float(ratio.iloc[-1])
                     z = (today - mu) / sigma if sigma > 0 else 0.0
-                    # Higher ratio = better. Positive z = above avg = confident.
-                    # Use -z in formula so: high z → low exponent input → high score
-                    # Anchor 0: z=0 (avg) scores 100*exp(0)=100, capped at 99
-                    # Anchor 0.5: avg conditions score ~96, need to be above avg to score high
-                    # decay=0.35 gives meaningful separation across z-score range
                     score_credit = max(0.0, min(99.0,
                         100.0 * math.exp(-0.35 * (-z))))
-        except Exception:
-            pass
+                    logger.info("MCI credit z=%.2f score=%.1f (HYG/LQD today=%.4f mean=%.4f)",
+                                z, score_credit, today, mu)
+        except Exception as exc:
+            logger.warning("MCI credit component failed: %s", exc)
 
         # ── Breadth (RSP/SPY) z-score component ──────────────────────────
         score_breadth = 50.0
         try:
             df_br = _download_multi([RSP_TICKER, SPY_TICKER], period="1y")
-            if RSP_TICKER in df_br.columns and SPY_TICKER in df_br.columns:
-                rsp_s  = df_br[RSP_TICKER].dropna()
-                spy_s  = df_br[SPY_TICKER].dropna()
-                ratio  = (rsp_s / spy_s).dropna()
+            rsp_s = _get_series(df_br, RSP_TICKER)
+            spy_s = _get_series(df_br, SPY_TICKER)
+            if rsp_s is not None and spy_s is not None:
+                ratio = (rsp_s / spy_s).dropna()
                 if len(ratio) >= 30:
                     history = ratio.iloc[:-1]
                     mu      = float(history.mean())
@@ -666,8 +669,10 @@ def get_market_confidence_index() -> Dict[str, Any]:
                     z = (today - mu) / sigma if sigma > 0 else 0.0
                     score_breadth = max(0.0, min(99.0,
                         100.0 * math.exp(-0.35 * (-z))))
-        except Exception:
-            pass
+                    logger.info("MCI breadth z=%.2f score=%.1f (RSP/SPY today=%.4f mean=%.4f)",
+                                z, score_breadth, today, mu)
+        except Exception as exc:
+            logger.warning("MCI breadth component failed: %s", exc)
 
         # ── Weighted MCI ──────────────────────────────────────────────────
         score = round(
