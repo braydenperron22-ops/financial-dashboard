@@ -189,6 +189,22 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 .flash-pos { animation:flash-pos 1s ease-out forwards; border-radius:3px; padding:0 3px; }
 .flash-neg { animation:flash-neg 1s ease-out forwards; border-radius:3px; padding:0 3px; }
 
+/* HIDE FRAGMENT REFRESH FLICKER */
+[data-testid="stSpinner"] { display:none !important; }
+div[data-testid="stStatusWidget"] { display:none !important; }
+
+/* Kill the dark overlay that appears during fragment re-renders */
+[data-testid="stAppViewBlockContainer"] > div > div[style*="opacity"] {
+    opacity:1 !important;
+    transition:none !important;
+}
+div[class*="overlay"],
+div[class*="loading"],
+div[class*="skeleton"] {
+    display:none !important;
+    opacity:0 !important;
+}
+
 /* 3-SIGMA PULSE ANIMATIONS */
 @keyframes pulse-pos {
   0%,100% { color:#00e676; text-shadow:0 0 8px rgba(0,230,118,.8); }
