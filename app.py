@@ -238,7 +238,7 @@ def fp(v, d=2):
 
 def fpc(v, d=2):
     if v is None: return "—"
-    return f"{v:+.{d}f}%"
+    return f"{abs(v):.{d}f}%"
 
 def fpbp(v):
     """Convert yield % change to basis points. 1bp = 0.01%"""
@@ -909,7 +909,7 @@ with col_port:
             f'<div style="text-align:right;">Portfolio Return</div></div>'
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">XEQT</div>'
-            f'<div class="pt-px" style="color:{xeqt_pcol};">{fp(xeqt_px)}</div>'
+            f'<div class="pt-px" style="color:{xeqt_pcol};">${fp(xeqt_px)}</div>'
             f'<div class="pt-ch {sigma_class(xeqt.get("sigma_1d"), xc)}">{xa}{xd}</div>'
             f'<div style="text-align:right;">'
             f'<div class="pt-ret {rc}">{ra}{rd}</div>'
@@ -987,7 +987,7 @@ def bottom_row():
             f'<div class="card-hdr" style="justify-content:center;">'
             f'Risk Rotation&nbsp;{badge(MODE)}</div>'
             f'<div class="big-wrap">'
-            f'<div class="big-num t0">{rr:.3f}</div>'
+            f'<div class="big-num t0">{"—" if in_reset_window() else f"{rr:.3f}"}</div>'
             f'<div class="big-sub">HYG / LQD RATIO</div>'
             f'<div class="big-chg {cl(rr_chg)}" style="font-size:17px;">{ar(rr_chg)}&nbsp;{fpc(rr_chg)}</div>'
             f'<div style="font-size:12px;color:#aaaaaa;letter-spacing:1px;margin-top:3px;font-weight:500;">{period_lbl} CHANGE</div>'
@@ -1015,7 +1015,7 @@ def bottom_row():
             f'<div class="card-hdr" style="justify-content:center;">'
             f'Breadth&nbsp;{badge(MODE)}</div>'
             f'<div class="big-wrap">'
-            f'<div class="big-num t0">{br:.3f}</div>'
+            f'<div class="big-num t0">{"—" if in_reset_window() else f"{br:.3f}"}</div>'
             f'<div class="big-sub">RSP / SPY · 10-LEVEL</div>'
             f'<div class="big-chg {br_chg_cl}" style="font-size:17px;">{br_chg_ar}&nbsp;{br_chg_str}</div>'
             f'<div style="font-size:12px;color:#aaaaaa;letter-spacing:1px;margin-top:3px;font-weight:500;">{period_lbl} CHANGE</div>'
