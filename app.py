@@ -808,8 +808,10 @@ top_row()
 col_mci, col_port = st.columns([1, 3], gap="small")
 
 with col_mci:
-    @st.fragment(run_every=120)
+    @st.fragment(run_every=60)
     def mci_panel():
+        sync_mode()
+        MODE   = get_mode()
         vol    = get_volatility_data()         or {}
         mci    = get_market_confidence_index() or {}
         score  = mci.get("score", 0)
@@ -817,11 +819,26 @@ with col_mci:
         vc     = vol.get("vix_current", 0)
         vma    = vol.get("vix_30dma", 0)
 
+        # Period change — zero/dash during reset window
+        raw_chg = {
+            "1D":  mci.get("mci_1d"),
+            "1M":  mci.get("mci_1m"),
+            "YTD": mci.get("mci_ytd"),
+        }.get(MODE)
+        if in_reset_window() and MODE == "1D":
+            raw_chg = None
+        if raw_chg is not None:
+            chg_col  = "#00e676" if raw_chg >= 0 else "#ff1744"
+            chg_ar   = "▲" if raw_chg >= 0 else "▼"
+            chg_html = (f'<span style="color:{chg_col};font-size:14px;font-weight:700;'
+                        f'margin-left:10px;">{chg_ar}{abs(raw_chg):.1f}</span>')
+        else:
+            chg_html = '<span style="color:#444;font-size:14px;margin-left:8px;">—</span>'
+
         # VIX vs 30DMA colour
         diff    = vc - vma
         vix_col = "#00e676" if diff < -1 else "#ff1744" if diff > 1 else "#ffffff"
 
-        # Per-label colour and style — each of the 9 levels is distinct
         LABEL_STYLES = {
             "Euphoria":       "color:#00e676;background:rgba(0,230,118,.12);border:2px solid rgba(0,230,118,.4);padding:5px 18px;border-radius:4px;font-size:19px;font-weight:700;letter-spacing:2px;display:inline-block;",
             "Very Confident": "color:#4caf50;background:rgba(76,175,80,.12);border:2px solid rgba(76,175,80,.4);padding:5px 18px;border-radius:4px;font-size:18px;font-weight:700;letter-spacing:1px;display:inline-block;",
@@ -837,8 +854,12 @@ with col_mci:
 
         st.markdown(
             f'<div class="card" style="border-right:2px solid #333333;">'
-            f'<div class="card-hdr">Market Confidence</div>'
+            f'<div class="card-hdr">Market Confidence '
+            f'<span style="font-size:9px;color:#444;letter-spacing:1px;">{MODE}</span></div>'
+            f'<div style="display:flex;align-items:baseline;justify-content:center;">'
             f'<div class="mci-num" style="color:#ffffff;">{score:.0f}</div>'
+            f'{chg_html}'
+            f'</div>'
             f'<div style="text-align:center;margin-top:4px;"><span style="{lbl_style}">{mlabel}</span></div>'
             f'<div class="vix-duo">'
             f'<div class="vix-blk">'

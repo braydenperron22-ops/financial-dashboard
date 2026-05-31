@@ -595,35 +595,108 @@ def get_volatility_data() -> Dict[str, Any]:
 
 def get_market_confidence_index() -> Dict[str, Any]:
     """
-    Market Confidence Index — formula matches Google Sheets original:
+    4-Component Market Confidence Index:
 
-        score_vix     = MAX(0, MIN(99, 100 * EXP(-0.08 * (VIX     - 14))))
-        score_vix30   = MAX(0, MIN(99, 100 * EXP(-0.08 * (VIX30   - 14))))
-        MCI           = (score_vix + score_vix30) / 2
+        Component 1 (40%): Live VIX        — anchor 15
+        Component 2 (25%): VIX 30DMA       — anchor 14
+        Component 3 (20%): HYG/LQD z-score — anchor -0.3 (bidirectional)
+        Component 4 (15%): RSP/SPY z-score — anchor -0.3 (bidirectional)
 
-    Interpretation:
-        VIX = 14  → score = 100  (calm, at the "normal" floor)
-        VIX = 20  → score ~  62
-        VIX = 30  → score ~  24
-        VIX = 45  → score ~   6  (near zero — extreme fear)
+    Z-score components use 252-day lookback. Anchoring at -0.3 means
+    average conditions score ~97, genuinely tight/broad conditions can
+    push to 99, and stressed conditions drag the score down meaningfully.
+
+    Historical MCI scores stored for period change display (1D/1M/YTD).
     """
-    key = "mci_data_v4"
+    key = "mci_data_v5"
 
     def _fetch():
         import math
+
+        # ── VIX components ────────────────────────────────────────────────
         vol    = get_volatility_data()
         vix    = vol.get("vix_current", 20.0) if vol else 20.0
         vix_ma = vol.get("vix_30dma",   20.0) if vol else 20.0
 
-        # Google Sheets formula — both components anchored to 14:
-        # score_vix   = MAX(0, MIN(99, 100 * EXP(-0.08 * (VIX   - 14))))
-        # score_vix30 = MAX(0, MIN(99, 100 * EXP(-0.08 * (VIX30 - 14))))
-        # MCI = (score_vix + score_vix30) / 2
-        score_vix   = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix    - 15.0))))  # anchor 15
+        score_vix   = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix    - 15.0))))
         score_vix30 = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix_ma - 14.0))))
-        score       = round((score_vix + score_vix30) / 2.0, 1)
 
-        # 9-level IFS scale (#14)
+        # ── Credit (HYG/LQD) z-score component ───────────────────────────
+        score_credit = 50.0  # default neutral
+        try:
+            df_cr = _download_multi([HYG_TICKER, "LQD"], period="2y")
+            if HYG_TICKER in df_cr.columns and "LQD" in df_cr.columns:
+                hyg_s = df_cr[HYG_TICKER].dropna()
+                lqd_s = df_cr["LQD"].dropna()
+                paired = pd.concat([hyg_s, lqd_s], axis=1).dropna()
+                paired.columns = ["hyg","lqd"]
+                ratio  = (paired["hyg"] / paired["lqd"]).dropna()
+                if len(ratio) >= 60:
+                    window  = ratio.iloc[-252:] if len(ratio) >= 252 else ratio
+                    mu      = float(window.mean())
+                    sigma   = float(window.std())
+                    z       = (float(ratio.iloc[-1]) - mu) / sigma if sigma > 0 else 0.0
+                    # Higher ratio = better, so positive z = good
+                    # Anchor at -0.3: average conditions score ~97
+                    score_credit = max(0.0, min(99.0,
+                        100.0 * math.exp(-0.08 * (-z - (-0.3)))))
+        except Exception:
+            pass
+
+        # ── Breadth (RSP/SPY) z-score component ──────────────────────────
+        score_breadth = 50.0  # default neutral
+        try:
+            df_br = _download_multi([RSP_TICKER, SPY_TICKER], period="2y")
+            if RSP_TICKER in df_br.columns and SPY_TICKER in df_br.columns:
+                rsp_s = df_br[RSP_TICKER].dropna()
+                spy_s = df_br[SPY_TICKER].dropna()
+                ratio = (rsp_s / spy_s).dropna()
+                if len(ratio) >= 60:
+                    window = ratio.iloc[-252:] if len(ratio) >= 252 else ratio
+                    mu     = float(window.mean())
+                    sigma  = float(window.std())
+                    z      = (float(ratio.iloc[-1]) - mu) / sigma if sigma > 0 else 0.0
+                    # Higher ratio = better breadth, positive z = good
+                    score_breadth = max(0.0, min(99.0,
+                        100.0 * math.exp(-0.08 * (-z - (-0.3)))))
+        except Exception:
+            pass
+
+        # ── Weighted MCI ──────────────────────────────────────────────────
+        score = round(
+            score_vix    * 0.40 +
+            score_vix30  * 0.25 +
+            score_credit * 0.20 +
+            score_breadth* 0.15,
+            1)
+
+        # ── Historical MCI for period change (1D/1M/YTD) ─────────────────
+        # Reconstruct past MCI using historical VIX data
+        mci_1d = mci_1m = mci_ytd = None
+        try:
+            vix_hist = _download_history(VIX_TICKER, period="1y")
+            if not vix_hist.empty:
+                closes = vix_hist["Close"].dropna()
+                sma21  = closes.rolling(21).mean()
+                def _hist_mci(idx):
+                    v  = float(closes.iloc[idx])
+                    vm = float(sma21.iloc[idx])
+                    s1 = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (v  - 15.0))))
+                    s2 = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vm - 14.0))))
+                    # Use VIX-only for history (credit/breadth history too expensive)
+                    # Weight them proportionally: 40/65 and 25/65 to keep same ratio
+                    return round(s1 * (0.40/0.65) + s2 * (0.25/0.65), 1)
+                if len(closes) > 1:  mci_1d  = score - _hist_mci(-2)
+                if len(closes) > 21: mci_1m  = score - _hist_mci(-22)
+                # YTD
+                this_year = str(closes.index[-1].year)
+                ytd = closes[closes.index >= this_year]
+                if len(ytd) >= 2:
+                    mci_ytd = score - _hist_mci(-(len(ytd)))
+        except Exception:
+            pass
+
+        # ── Label ─────────────────────────────────────────────────────────
         if score >= 90:   label = "Euphoria"
         elif score >= 80: label = "Very Confident"
         elif score >= 70: label = "Confident"
@@ -635,11 +708,16 @@ def get_market_confidence_index() -> Dict[str, Any]:
         else:             label = "Panic"
 
         return {
-            "score": score,
-            "label": label,
+            "score":        score,
+            "label":        label,
+            "mci_1d":       round(mci_1d,  1) if mci_1d  is not None else None,
+            "mci_1m":       round(mci_1m,  1) if mci_1m  is not None else None,
+            "mci_ytd":      round(mci_ytd, 1) if mci_ytd is not None else None,
             "factors": {
-                "VIX Score":     round(score_vix,   1),
-                "VIX 30DMA Score": round(score_vix30, 1),
+                "VIX":     round(score_vix,    1),
+                "30DMA":   round(score_vix30,  1),
+                "Credit":  round(score_credit, 1),
+                "Breadth": round(score_breadth,1),
             },
         }
 
