@@ -608,7 +608,7 @@ def get_market_confidence_index() -> Dict[str, Any]:
 
     Historical MCI scores stored for period change display (1D/1M/YTD).
     """
-    key = "mci_data_v8"
+    key = "mci_data_v9"
 
     def _fetch():
         import math
@@ -622,21 +622,14 @@ def get_market_confidence_index() -> Dict[str, Any]:
         score_vix30 = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix_ma - 14.0))))
 
         # ── Credit (HYG/LQD) z-score component ───────────────────────────
+        # Download individually using yf.Ticker history — most reliable
         score_credit = 50.0
         try:
-            df_cr = _download_multi([HYG_TICKER, "LQD"], period="1y")
-            # Handle both MultiIndex and flat column structures
-            def _get_series(df, ticker):
-                if isinstance(df.columns, pd.MultiIndex):
-                    if ticker in df.columns.get_level_values(1):
-                        return df.xs(ticker, level=1, axis=1).iloc[:, 0].dropna()
-                elif ticker in df.columns:
-                    return df[ticker].dropna()
-                return None
-
-            hyg_s = _get_series(df_cr, HYG_TICKER)
-            lqd_s = _get_series(df_cr, "LQD")
-            if hyg_s is not None and lqd_s is not None:
+            hyg_df = yf.Ticker(HYG_TICKER).history(period="1y")
+            lqd_df = yf.Ticker("LQD").history(period="1y")
+            if not hyg_df.empty and not lqd_df.empty:
+                hyg_s  = hyg_df["Close"].dropna()
+                lqd_s  = lqd_df["Close"].dropna()
                 paired = pd.concat([hyg_s, lqd_s], axis=1).dropna()
                 paired.columns = ["hyg", "lqd"]
                 ratio  = (paired["hyg"] / paired["lqd"]).dropna()
@@ -648,19 +641,20 @@ def get_market_confidence_index() -> Dict[str, Any]:
                     z = (today - mu) / sigma if sigma > 0 else 0.0
                     score_credit = max(0.0, min(99.0,
                         100.0 * math.exp(-0.35 * (-z))))
-                    logger.info("MCI credit z=%.2f score=%.1f (HYG/LQD today=%.4f mean=%.4f)",
+                    logger.info("MCI credit z=%.2f score=%.1f ratio=%.4f mean=%.4f",
                                 z, score_credit, today, mu)
         except Exception as exc:
-            logger.warning("MCI credit component failed: %s", exc)
+            logger.warning("MCI credit failed: %s", exc)
 
         # ── Breadth (RSP/SPY) z-score component ──────────────────────────
         score_breadth = 50.0
         try:
-            df_br = _download_multi([RSP_TICKER, SPY_TICKER], period="1y")
-            rsp_s = _get_series(df_br, RSP_TICKER)
-            spy_s = _get_series(df_br, SPY_TICKER)
-            if rsp_s is not None and spy_s is not None:
-                ratio = (rsp_s / spy_s).dropna()
+            rsp_df = yf.Ticker(RSP_TICKER).history(period="1y")
+            spy_df = yf.Ticker(SPY_TICKER).history(period="1y")
+            if not rsp_df.empty and not spy_df.empty:
+                rsp_s  = rsp_df["Close"].dropna()
+                spy_s  = spy_df["Close"].dropna()
+                ratio  = (rsp_s / spy_s).dropna()
                 if len(ratio) >= 30:
                     history = ratio.iloc[:-1]
                     mu      = float(history.mean())
@@ -669,10 +663,10 @@ def get_market_confidence_index() -> Dict[str, Any]:
                     z = (today - mu) / sigma if sigma > 0 else 0.0
                     score_breadth = max(0.0, min(99.0,
                         100.0 * math.exp(-0.35 * (-z))))
-                    logger.info("MCI breadth z=%.2f score=%.1f (RSP/SPY today=%.4f mean=%.4f)",
+                    logger.info("MCI breadth z=%.2f score=%.1f ratio=%.4f mean=%.4f",
                                 z, score_breadth, today, mu)
         except Exception as exc:
-            logger.warning("MCI breadth component failed: %s", exc)
+            logger.warning("MCI breadth failed: %s", exc)
 
         # ── Weighted MCI ──────────────────────────────────────────────────
         score = round(
