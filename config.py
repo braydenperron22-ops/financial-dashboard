@@ -103,6 +103,19 @@ TICKER_SECTIONS = {
         "BTC-USD", "ETH-USD", "BNB-USD", "SOL-USD",
         "COIN", "MSTR", "IBIT",
     ],
+    "FOREX": [
+        "EURUSD=X",   # Euro / US Dollar
+        "GBPUSD=X",   # British Pound / US Dollar
+        "USDJPY=X",   # US Dollar / Japanese Yen
+        "USDCAD=X",   # US Dollar / Canadian Dollar
+        "AUDUSD=X",   # Australian Dollar / US Dollar
+        "USDCHF=X",   # US Dollar / Swiss Franc
+        "NZDUSD=X",   # New Zealand Dollar / US Dollar
+        "USDCNY=X",   # US Dollar / Chinese Yuan
+        "USDBRL=X",   # US Dollar / Brazilian Real
+        "USDINR=X",   # US Dollar / Indian Rupee
+        "DX-Y.NYB",   # US Dollar Index (DXY)
+    ],
     "MOST ACTIVE": [
         "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN",
         "META", "TSLA", "AVGO", "AMD", "PLTR",
@@ -118,6 +131,7 @@ HEADER_TICKERS = [t for tickers in TICKER_SECTIONS.values() for t in tickers]
 # Tickers that trade around the clock on weekdays — never zero during reset window
 FUTURES_TICKERS = set(TICKER_SECTIONS["FUTURES"])
 CRYPTO_TICKERS  = set(TICKER_SECTIONS["CRYPTO"])
+FOREX_TICKERS   = set(TICKER_SECTIONS["FOREX"])
 
 # ---------------------------------------------------------------------------
 # 7. CACHE & REFRESH SETTINGS

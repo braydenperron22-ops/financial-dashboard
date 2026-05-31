@@ -47,6 +47,7 @@ from config import (
     TICKER_SECTIONS,
     FUTURES_TICKERS,
     CRYPTO_TICKERS,
+    FOREX_TICKERS,
     HYG_TICKER,
     IEF_TICKER,
     INDICES,
@@ -969,6 +970,7 @@ def get_header_ticker_data() -> List[Dict[str, Any]]:
                     "pct_1d":   pct_1d,
                     "is_fut":    ticker in FUTURES_TICKERS,
                     "is_crypto": ticker in CRYPTO_TICKERS,
+                    "is_forex":  ticker in FOREX_TICKERS,
                 })
 
         return items

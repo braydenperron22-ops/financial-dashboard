@@ -4,7 +4,7 @@
 from datetime import datetime
 import pytz
 import streamlit as st
-from config import PORTFOLIO
+from config import PORTFOLIO, FOREX_TICKERS
 from data.fetcher import (
     get_header_ticker_data, get_indices_data,
     get_market_confidence_index, get_market_status, get_portfolio_data,
@@ -319,6 +319,16 @@ def is_sunday_futures_open() -> bool:
     t = now.hour * 60 + now.minute
     return 18 * 60 <= t < 22 * 60
 
+# Human-readable forex labels
+FOREX_LABELS = {
+    "EURUSD=X": "EUR/USD", "GBPUSD=X": "GBP/USD",
+    "USDJPY=X": "USD/JPY", "USDCAD=X": "USD/CAD",
+    "AUDUSD=X": "AUD/USD", "USDCHF=X": "USD/CHF",
+    "NZDUSD=X": "NZD/USD", "USDCNY=X": "USD/CNY",
+    "USDBRL=X": "USD/BRL", "USDINR=X": "USD/INR",
+    "DX-Y.NYB": "DXY",
+}
+
 def is_futures_active() -> bool:
     """
     Equity futures trade Sun 6pm ET → Fri 5pm ET.
@@ -580,24 +590,27 @@ def ticker_bar():
 
         is_fut    = h.get("is_fut", False)
         is_crypto = h.get("is_crypto", False)
+        is_forex  = h["label"] in FOREX_TICKERS
         raw       = h.get("pct_1d")
+        sym       = h["label"]
+        disp_lbl  = FOREX_LABELS.get(sym, sym)
 
-        # Futures: zero on weekends / before Sunday 6pm; live otherwise
         if is_fut:
             if not fut_live:
-                c, a, d = "t0", "", "+0.00%"
+                c, a, d = "t0", "", "0.00%"
             else:
                 c, a, d = cl(raw), ar(raw), fpc(raw) if raw is not None else ("t2","","—")
-        elif is_crypto:
-            # Crypto always live
+        elif is_crypto or is_forex:
             c, a, d = cl(raw), ar(raw), fpc(raw) if raw is not None else ("t2","","—")
         else:
             c, a, d = fmt_1d(raw)
 
+        price_disp = fp(h.get("price"), 4) if is_forex else fp(h.get("price"))
+
         items.append(
             f'<span class="ti">'
-            f'<span class="ti-s">{h["label"]}</span>'
-            f'<span class="ti-p">{fp(h.get("price"))}</span>'
+            f'<span class="ti-s">{disp_lbl}</span>'
+            f'<span class="ti-p">{price_disp}</span>'
             f'<span class="ti-c {c}">{a}{d}</span>'
             f'</span>')
 
