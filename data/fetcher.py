@@ -608,7 +608,7 @@ def get_market_confidence_index() -> Dict[str, Any]:
 
     Historical MCI scores stored for period change display (1D/1M/YTD).
     """
-    key = "mci_data_v5"
+    key = "mci_data_v7"
 
     def _fetch():
         import math
@@ -622,43 +622,50 @@ def get_market_confidence_index() -> Dict[str, Any]:
         score_vix30 = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix_ma - 14.0))))
 
         # ── Credit (HYG/LQD) z-score component ───────────────────────────
-        score_credit = 50.0  # default neutral
+        # 1-year lookback so we measure vs recent conditions, not old regimes
+        # Positive z = ratio above 1yr mean = tight credit = good
+        # We compare today vs the rolling mean EXCLUDING today (iloc[:-1])
+        score_credit = 50.0
         try:
-            df_cr = _download_multi([HYG_TICKER, "LQD"], period="2y")
+            df_cr = _download_multi([HYG_TICKER, "LQD"], period="1y")
             if HYG_TICKER in df_cr.columns and "LQD" in df_cr.columns:
-                hyg_s = df_cr[HYG_TICKER].dropna()
-                lqd_s = df_cr["LQD"].dropna()
+                hyg_s  = df_cr[HYG_TICKER].dropna()
+                lqd_s  = df_cr["LQD"].dropna()
                 paired = pd.concat([hyg_s, lqd_s], axis=1).dropna()
-                paired.columns = ["hyg","lqd"]
+                paired.columns = ["hyg", "lqd"]
                 ratio  = (paired["hyg"] / paired["lqd"]).dropna()
-                if len(ratio) >= 60:
-                    window  = ratio.iloc[-252:] if len(ratio) >= 252 else ratio
-                    mu      = float(window.mean())
-                    sigma   = float(window.std())
-                    z       = (float(ratio.iloc[-1]) - mu) / sigma if sigma > 0 else 0.0
-                    # Higher ratio = better, so positive z = good
-                    # Anchor at -0.3: average conditions score ~97
+                if len(ratio) >= 30:
+                    history = ratio.iloc[:-1]   # exclude today
+                    mu      = float(history.mean())
+                    sigma   = float(history.std())
+                    today   = float(ratio.iloc[-1])
+                    z = (today - mu) / sigma if sigma > 0 else 0.0
+                    # Higher ratio = better. Positive z = above avg = confident.
+                    # Use -z in formula so: high z → low exponent input → high score
+                    # Anchor 0: z=0 (avg) scores 100*exp(0)=100, capped at 99
+                    # Anchor 0.5: avg conditions score ~96, need to be above avg to score high
+                    # decay=0.35 gives meaningful separation across z-score range
                     score_credit = max(0.0, min(99.0,
-                        100.0 * math.exp(-0.08 * (-z - (-0.3)))))
+                        100.0 * math.exp(-0.35 * (-z))))
         except Exception:
             pass
 
         # ── Breadth (RSP/SPY) z-score component ──────────────────────────
-        score_breadth = 50.0  # default neutral
+        score_breadth = 50.0
         try:
-            df_br = _download_multi([RSP_TICKER, SPY_TICKER], period="2y")
+            df_br = _download_multi([RSP_TICKER, SPY_TICKER], period="1y")
             if RSP_TICKER in df_br.columns and SPY_TICKER in df_br.columns:
-                rsp_s = df_br[RSP_TICKER].dropna()
-                spy_s = df_br[SPY_TICKER].dropna()
-                ratio = (rsp_s / spy_s).dropna()
-                if len(ratio) >= 60:
-                    window = ratio.iloc[-252:] if len(ratio) >= 252 else ratio
-                    mu     = float(window.mean())
-                    sigma  = float(window.std())
-                    z      = (float(ratio.iloc[-1]) - mu) / sigma if sigma > 0 else 0.0
-                    # Higher ratio = better breadth, positive z = good
+                rsp_s  = df_br[RSP_TICKER].dropna()
+                spy_s  = df_br[SPY_TICKER].dropna()
+                ratio  = (rsp_s / spy_s).dropna()
+                if len(ratio) >= 30:
+                    history = ratio.iloc[:-1]
+                    mu      = float(history.mean())
+                    sigma   = float(history.std())
+                    today   = float(ratio.iloc[-1])
+                    z = (today - mu) / sigma if sigma > 0 else 0.0
                     score_breadth = max(0.0, min(99.0,
-                        100.0 * math.exp(-0.08 * (-z - (-0.3)))))
+                        100.0 * math.exp(-0.35 * (-z))))
         except Exception:
             pass
 
