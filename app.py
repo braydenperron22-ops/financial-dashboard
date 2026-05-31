@@ -189,6 +189,13 @@ div[data-testid="stAppViewContainer"] > section { padding-top:0 !important; }
 .flash-pos { animation:flash-pos 1s ease-out forwards; border-radius:3px; padding:0 3px; }
 .flash-neg { animation:flash-neg 1s ease-out forwards; border-radius:3px; padding:0 3px; }
 
+/* BREAKING PULSE */
+@keyframes breaking-pulse {
+  0%,100% { opacity:1; box-shadow:0 0 8px rgba(255,23,68,.8); }
+  50%      { opacity:.75; box-shadow:0 0 18px rgba(255,23,68,1), 0 0 30px rgba(255,23,68,.4); }
+}
+.breaking-badge { animation:breaking-pulse 1.2s ease-in-out infinite; }
+
 /* HIDE FRAGMENT REFRESH FLICKER */
 [data-testid="stSpinner"] { display:none !important; }
 div[data-testid="stStatusWidget"] { display:none !important; }
@@ -741,6 +748,8 @@ def top_row():
         }
         _name    = next((n for n,fn in _names.items() if fn(_today)), "Market Holiday")
         mkt_stxt = f"🇺🇸 {_name.upper()}"
+    elif is_sunday_futures_open():
+        mkt_cls, mkt_stxt, mkt_col = "mkt-pre",    "FUTURES OPEN",   "gld"
     elif session == "open":
         mkt_cls, mkt_stxt, mkt_col = "mkt-open",   "MARKET: OPEN",   "pos"
     elif session == "pre":
