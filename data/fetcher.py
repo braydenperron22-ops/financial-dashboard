@@ -595,86 +595,24 @@ def get_volatility_data() -> Dict[str, Any]:
 
 def get_market_confidence_index() -> Dict[str, Any]:
     """
-    4-Component Market Confidence Index:
-
-        Component 1 (40%): Live VIX        — anchor 15
-        Component 2 (25%): VIX 30DMA       — anchor 14
-        Component 3 (20%): HYG/LQD z-score — anchor -0.3 (bidirectional)
-        Component 4 (15%): RSP/SPY z-score — anchor -0.3 (bidirectional)
-
-    Z-score components use 252-day lookback. Anchoring at -0.3 means
-    average conditions score ~97, genuinely tight/broad conditions can
-    push to 99, and stressed conditions drag the score down meaningfully.
-
+    2-Component Market Confidence Index matching Google Sheets:
+        score_vix   = MAX(0, MIN(99, 100 * EXP(-0.08 * (VIX   - 15))))
+        score_vix30 = MAX(0, MIN(99, 100 * EXP(-0.08 * (VIX30 - 14))))
+        MCI = (score_vix * 0.50) + (score_vix30 * 0.50)
     Historical MCI scores stored for period change display (1D/1M/YTD).
     """
-    key = "mci_data_v9"
+    key = "mci_data_v10"
 
     def _fetch():
         import math
 
-        # ── VIX components ────────────────────────────────────────────────
         vol    = get_volatility_data()
         vix    = vol.get("vix_current", 20.0) if vol else 20.0
         vix_ma = vol.get("vix_30dma",   20.0) if vol else 20.0
 
         score_vix   = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix    - 15.0))))
         score_vix30 = max(0.0, min(99.0, 100.0 * math.exp(-0.08 * (vix_ma - 14.0))))
-
-        # ── Credit (HYG/LQD) z-score component ───────────────────────────
-        # Download individually using yf.Ticker history — most reliable
-        score_credit = 50.0
-        try:
-            hyg_df = yf.Ticker(HYG_TICKER).history(period="1y")
-            lqd_df = yf.Ticker("LQD").history(period="1y")
-            if not hyg_df.empty and not lqd_df.empty:
-                hyg_s  = hyg_df["Close"].dropna()
-                lqd_s  = lqd_df["Close"].dropna()
-                paired = pd.concat([hyg_s, lqd_s], axis=1).dropna()
-                paired.columns = ["hyg", "lqd"]
-                ratio  = (paired["hyg"] / paired["lqd"]).dropna()
-                if len(ratio) >= 30:
-                    history = ratio.iloc[:-1]
-                    mu      = float(history.mean())
-                    sigma   = float(history.std())
-                    today   = float(ratio.iloc[-1])
-                    z = (today - mu) / sigma if sigma > 0 else 0.0
-                    score_credit = max(0.0, min(99.0,
-                        100.0 * math.exp(-0.35 * (-z))))
-                    logger.info("MCI credit z=%.2f score=%.1f ratio=%.4f mean=%.4f",
-                                z, score_credit, today, mu)
-        except Exception as exc:
-            logger.warning("MCI credit failed: %s", exc)
-
-        # ── Breadth (RSP/SPY) z-score component ──────────────────────────
-        score_breadth = 50.0
-        try:
-            rsp_df = yf.Ticker(RSP_TICKER).history(period="1y")
-            spy_df = yf.Ticker(SPY_TICKER).history(period="1y")
-            if not rsp_df.empty and not spy_df.empty:
-                rsp_s  = rsp_df["Close"].dropna()
-                spy_s  = spy_df["Close"].dropna()
-                ratio  = (rsp_s / spy_s).dropna()
-                if len(ratio) >= 30:
-                    history = ratio.iloc[:-1]
-                    mu      = float(history.mean())
-                    sigma   = float(history.std())
-                    today   = float(ratio.iloc[-1])
-                    z = (today - mu) / sigma if sigma > 0 else 0.0
-                    score_breadth = max(0.0, min(99.0,
-                        100.0 * math.exp(-0.35 * (-z))))
-                    logger.info("MCI breadth z=%.2f score=%.1f ratio=%.4f mean=%.4f",
-                                z, score_breadth, today, mu)
-        except Exception as exc:
-            logger.warning("MCI breadth failed: %s", exc)
-
-        # ── Weighted MCI ──────────────────────────────────────────────────
-        score = round(
-            score_vix    * 0.40 +
-            score_vix30  * 0.25 +
-            score_credit * 0.20 +
-            score_breadth* 0.15,
-            1)
+        score       = round(score_vix * 0.50 + score_vix30 * 0.50, 1)
 
         # ── Historical MCI for period change (1D/1M/YTD) ─────────────────
         # Reconstruct past MCI using historical VIX data
@@ -714,16 +652,14 @@ def get_market_confidence_index() -> Dict[str, Any]:
         else:             label = "Panic"
 
         return {
-            "score":        score,
-            "label":        label,
-            "mci_1d":       round(mci_1d,  1) if mci_1d  is not None else None,
-            "mci_1m":       round(mci_1m,  1) if mci_1m  is not None else None,
-            "mci_ytd":      round(mci_ytd, 1) if mci_ytd is not None else None,
+            "score":   score,
+            "label":   label,
+            "mci_1d":  round(mci_1d,  1) if mci_1d  is not None else None,
+            "mci_1m":  round(mci_1m,  1) if mci_1m  is not None else None,
+            "mci_ytd": round(mci_ytd, 1) if mci_ytd is not None else None,
             "factors": {
-                "VIX":     round(score_vix,    1),
-                "30DMA":   round(score_vix30,  1),
-                "Credit":  round(score_credit, 1),
-                "Breadth": round(score_breadth,1),
+                "VIX":   round(score_vix,   1),
+                "30DMA": round(score_vix30, 1),
             },
         }
 

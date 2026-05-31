@@ -830,10 +830,10 @@ with col_mci:
         if raw_chg is not None:
             chg_col  = "#00e676" if raw_chg >= 0 else "#ff1744"
             chg_ar   = "▲" if raw_chg >= 0 else "▼"
-            chg_html = (f'<span style="color:{chg_col};font-size:14px;font-weight:700;'
-                        f'margin-left:10px;">{chg_ar}{abs(raw_chg):.1f}</span>')
+            chg_html = (f'<span style="color:{chg_col};font-size:16px;font-weight:400;'
+                        f'margin-left:12px;">{chg_ar}{abs(raw_chg):.1f}</span>')
         else:
-            chg_html = '<span style="color:#444;font-size:14px;margin-left:8px;">—</span>'
+            chg_html = '<span style="color:#444;font-size:16px;font-weight:400;margin-left:12px;">—</span>'
 
         # VIX vs 30DMA colour
         diff    = vc - vma
@@ -856,8 +856,8 @@ with col_mci:
             f'<div class="card" style="border-right:2px solid #333333;">'
             f'<div class="card-hdr">Market Confidence '
             f'<span style="font-size:9px;color:#444;letter-spacing:1px;">{MODE}</span></div>'
-            f'<div style="display:flex;align-items:baseline;justify-content:center;">'
-            f'<div class="mci-num" style="color:#ffffff;">{score:.0f}</div>'
+            f'<div style="text-align:center;">'
+            f'<div class="mci-num" style="color:#ffffff;display:inline-block;">{score:.0f}</div>'
             f'{chg_html}'
             f'</div>'
             f'<div style="text-align:center;margin-top:4px;"><span style="{lbl_style}">{mlabel}</span></div>'
