@@ -214,15 +214,15 @@ div[class*="skeleton"] {
 
 /* 2.5 SIGMA FLASH ANIMATIONS */
 @keyframes sigma-glow-pos {
-  0%,100% { opacity:1; }
-  50%      { opacity:0; }
+  0%,100% { background:transparent; }
+  50%      { background:rgba(0,230,118,.35); border-radius:4px; }
 }
 @keyframes sigma-glow-neg {
-  0%,100% { opacity:1; }
-  50%      { opacity:0; }
+  0%,100% { background:transparent; }
+  50%      { background:rgba(255,23,68,.35); border-radius:4px; }
 }
-.mci-sigma-pos { animation:sigma-glow-pos 0.8s ease-in-out infinite; }
-.mci-sigma-neg { animation:sigma-glow-neg 0.8s ease-in-out infinite; }
+.mci-sigma-pos { animation:sigma-glow-pos 1.2s ease-in-out infinite; padding:0 4px; border-radius:4px; }
+.mci-sigma-neg { animation:sigma-glow-neg 1.2s ease-in-out infinite; padding:0 4px; border-radius:4px; }
 
 /* NIGHT MODE */
 .night-screen { position:fixed; top:0; left:0; width:100vw; height:100vh;
