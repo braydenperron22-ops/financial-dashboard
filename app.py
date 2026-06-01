@@ -212,17 +212,17 @@ div[class*="skeleton"] {
     opacity:0 !important;
 }
 
-/* 3-SIGMA PULSE ANIMATIONS */
+/* 2.5 SIGMA FLASH ANIMATIONS */
 @keyframes pulse-pos {
-  0%,100% { color:#00e676; text-shadow:0 0 8px rgba(0,230,118,.8); }
-  50%      { color:#00ff88; text-shadow:0 0 20px rgba(0,230,118,1), 0 0 40px rgba(0,230,118,.4); }
+  0%,100% { color:#00e676; text-shadow:none; }
+  50%      { color:#80ffbb; text-shadow:0 0 12px #00e676, 0 0 24px rgba(0,230,118,.6), 0 0 40px rgba(0,230,118,.3); }
 }
 @keyframes pulse-neg {
-  0%,100% { color:#ff1744; text-shadow:0 0 8px rgba(255,23,68,.8); }
-  50%      { color:#ff4569; text-shadow:0 0 20px rgba(255,23,68,1), 0 0 40px rgba(255,23,68,.4); }
+  0%,100% { color:#ff1744; text-shadow:none; }
+  50%      { color:#ff8099; text-shadow:0 0 12px #ff1744, 0 0 24px rgba(255,23,68,.6), 0 0 40px rgba(255,23,68,.3); }
 }
-.sigma-pos { animation:pulse-pos 1.8s ease-in-out infinite; }
-.sigma-neg { animation:pulse-neg 1.8s ease-in-out infinite; }
+.sigma-pos { animation:pulse-pos 1.4s ease-in-out infinite; }
+.sigma-neg { animation:pulse-neg 1.4s ease-in-out infinite; }
 
 /* NIGHT MODE */
 .night-screen { position:fixed; top:0; left:0; width:100vw; height:100vh;
@@ -824,22 +824,6 @@ with col_mci:
         vc     = vol.get("vix_current", 0)
         vma    = vol.get("vix_30dma", 0)
 
-        # Period change — zero/dash during reset window
-        raw_chg = {
-            "1D":  mci.get("mci_1d"),
-            "1M":  mci.get("mci_1m"),
-            "YTD": mci.get("mci_ytd"),
-        }.get(MODE)
-        if in_reset_window() and MODE == "1D":
-            raw_chg = None
-        if raw_chg is not None:
-            chg_col  = "#00e676" if raw_chg >= 0 else "#ff1744"
-            chg_ar   = "▲" if raw_chg >= 0 else "▼"
-            chg_html = (f'<span style="color:{chg_col};font-size:16px;font-weight:400;'
-                        f'margin-left:12px;">{chg_ar}{abs(raw_chg):.1f}</span>')
-        else:
-            chg_html = '<span style="color:#444;font-size:16px;font-weight:400;margin-left:12px;">—</span>'
-
         # VIX vs 30DMA colour
         diff    = vc - vma
         vix_col = "#00e676" if diff < -1 else "#ff1744" if diff > 1 else "#ffffff"
@@ -859,12 +843,8 @@ with col_mci:
 
         st.markdown(
             f'<div class="card" style="border-right:2px solid #333333;">'
-            f'<div class="card-hdr">Market Confidence '
-            f'<span style="font-size:9px;color:#444;letter-spacing:1px;">{MODE}</span></div>'
-            f'<div style="text-align:center;">'
-            f'<div class="mci-num" style="color:#ffffff;display:inline-block;">{score:.0f}</div>'
-            f'{chg_html}'
-            f'</div>'
+            f'<div class="card-hdr">Market Confidence</div>'
+            f'<div class="mci-num" style="color:#ffffff;">{score:.0f}</div>'
             f'<div style="text-align:center;margin-top:4px;"><span style="{lbl_style}">{mlabel}</span></div>'
             f'<div class="vix-duo">'
             f'<div class="vix-blk">'
