@@ -221,8 +221,8 @@ div[class*="skeleton"] {
   0%,100% { color:#ff1744; text-shadow:none; }
   50%      { color:#ff8099; text-shadow:0 0 12px #ff1744, 0 0 24px rgba(255,23,68,.6), 0 0 40px rgba(255,23,68,.3); }
 }
-.sigma-pos { animation:pulse-pos 1.4s ease-in-out infinite; }
-.sigma-neg { animation:pulse-neg 1.4s ease-in-out infinite; }
+.mci-sigma-pos { animation:pulse-pos 1.4s ease-in-out infinite; }
+.mci-sigma-neg { animation:pulse-neg 1.4s ease-in-out infinite; }
 
 /* NIGHT MODE */
 .night-screen { position:fixed; top:0; left:0; width:100vw; height:100vh;
@@ -425,9 +425,9 @@ def sigma_class(sigma, base_colour: str = "", mode: str = "") -> str:
     if mode != "1D":
         return base_colour
     if sigma >= 2.5:
-        return f"{base_colour} sigma-pos".strip()
+        return f"{base_colour} mci-sigma-pos".strip()
     if sigma <= -2.5:
-        return f"{base_colour} sigma-neg".strip()
+        return f"{base_colour} mci-sigma-neg".strip()
     return base_colour
 
 # Weather codes from Open-Meteo WMO standard
