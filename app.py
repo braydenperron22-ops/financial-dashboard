@@ -415,13 +415,14 @@ def is_market_session() -> bool:
     t = now.hour * 60 + now.minute
     return 9 * 60 + 30 <= t < 16 * 60 + 15
 
-def sigma_class(sigma, base_colour: str = "") -> str:
+def sigma_class(sigma, base_colour: str = "", mode: str = "") -> str:
     """
     Returns a CSS class string to apply pulsing if |sigma| > 2.5.
-    Suppressed during the reset window (4am-9:30am + weekends)
-    since 1D data is zeroed out and a flat 0.00% should never pulse.
+    Only fires in 1D mode. Suppressed during reset window.
     """
     if sigma is None or in_reset_window():
+        return base_colour
+    if mode != "1D":
         return base_colour
     if sigma >= 2.5:
         return f"{base_colour} sigma-pos".strip()
@@ -742,10 +743,10 @@ def top_row():
             atype = "tsx" if name == "TSX" else "us"
             if KEY == "pct_1d":
                 colour, arrow, display, is_hol = fmt_1d_with_holiday(raw, atype)
-                pct_cls = sigma_class(sig if not is_hol else None, colour)
+                pct_cls = sigma_class(sig if not is_hol else None, colour, MODE)
             else:
                 colour, arrow, display, is_hol = cl(raw), ar(raw), fpc(raw,2), False
-                pct_cls = sigma_class(sig, colour)
+                pct_cls = sigma_class(sig, colour, MODE)
             sub       = "Holiday" if is_hol else f"${fp(d.get('price'))}"
             sub_style = "color:#505050;" if is_hol else ""
             idx_cells += (
@@ -915,7 +916,7 @@ with col_port:
         if mkt_open and KEY == "pct_1d":
             # Market hours 1D → show IBIT % change
             ibit_px  = ibit_data.get("ibit_price")
-            btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc)
+            btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc, KEY=="pct_1d" and "1D" or "")
             btc_ch     = f"{ba}{bd}"
             btc_lbl    = "IBIT · 20% WEIGHT"
         elif not mkt_open and KEY == "pct_1d":
@@ -929,12 +930,12 @@ with col_port:
                 btc_close  = ibit_data.get("btc_close")
                 btc_lbl    = f"SNAPSHOT ${fp(btc_close,0)} · BASELINE"
             else:
-                btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc)
+                btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc, KEY=="pct_1d" and "1D" or "")
                 btc_ch     = f"{ba}{bd}"
                 btc_lbl    = "20% WEIGHT · 24/7"
         else:
             # 1M / YTD → always show BTC period change
-            btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc)
+            btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc, KEY=="pct_1d" and "1D" or "")
             btc_ch     = f"{ba}{bd}"
             btc_lbl    = "20% WEIGHT · 24/7"
 
@@ -945,7 +946,7 @@ with col_port:
             f'<div class="pt-r" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
             f'<div class="pt-sym">XEQT</div>'
             f'<div class="pt-px" style="color:{xeqt_pcol};">${fp(xeqt_px)}</div>'
-            f'<div class="pt-ch {sigma_class(xeqt.get("sigma_1d"), xc)}">{xa}{xd}</div>'
+            f'<div class="pt-ch {sigma_class(xeqt.get("sigma_1d"), xc, KEY=="pct_1d" and "1D" or "")}">{xa}{xd}</div>'
             f'<div style="text-align:right;">'
             f'<div class="pt-ret {rc}">{ra}{rd}</div>'
             f'<div class="pt-wt">{"TSX HOLIDAY" if x_hol else "BLENDED 80/20"}</div></div></div>'
@@ -991,7 +992,7 @@ def bottom_row():
                     colour,arrow,display = cl(raw),ar(raw),fpc(raw)
                 nc    = sector_name_colour(d.get("price"),d.get("sma50"),d.get("sma200"),d.get("ath"))
                 sig   = d.get("sigma_1d")   # check sigma in all modes
-                pcls  = sigma_class(sig, colour)
+                pcls  = sigma_class(sig, colour, MODE)
                 rows.append(
                     f'<div class="sec-r">'
                     f'<span class="sec-n" style="color:{nc};">{name}</span>'
