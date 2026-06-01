@@ -693,6 +693,11 @@ summary_bar()
 def top_row():
     market  = get_market_status() or {}
     indices = get_indices_data()  or {}
+    # If night mode just started, trigger full rerun to show night screen
+    if is_night_mode():
+        st.rerun()
+        return
+
     sync_mode()
     MODE = get_mode(); KEY = mk(MODE)
     now_et   = datetime.now(pytz.timezone("America/New_York"))
