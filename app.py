@@ -214,15 +214,15 @@ div[class*="skeleton"] {
 
 /* 2.5 SIGMA FLASH ANIMATIONS */
 @keyframes sigma-glow-pos {
-  0%,100% { color:#00e676; text-shadow:none; }
-  50%      { color:#80ffbb; text-shadow:0 0 12px #00e676, 0 0 24px rgba(0,230,118,.6), 0 0 40px rgba(0,230,118,.3); }
+  0%,100% { opacity:1; }
+  50%      { opacity:0; }
 }
 @keyframes sigma-glow-neg {
-  0%,100% { color:#ff1744; text-shadow:none; }
-  50%      { color:#ff8099; text-shadow:0 0 12px #ff1744, 0 0 24px rgba(255,23,68,.6), 0 0 40px rgba(255,23,68,.3); }
+  0%,100% { opacity:1; }
+  50%      { opacity:0; }
 }
-.mci-sigma-pos { animation:sigma-glow-pos 1.4s ease-in-out infinite; }
-.mci-sigma-neg { animation:sigma-glow-neg 1.4s ease-in-out infinite; }
+.mci-sigma-pos { animation:sigma-glow-pos 0.8s ease-in-out infinite; }
+.mci-sigma-neg { animation:sigma-glow-neg 0.8s ease-in-out infinite; }
 
 /* NIGHT MODE */
 .night-screen { position:fixed; top:0; left:0; width:100vw; height:100vh;
