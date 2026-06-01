@@ -19,6 +19,9 @@ from data.fetcher import (
 st.set_page_config(page_title="MARKET TERMINAL", layout="wide",
                    initial_sidebar_state="collapsed")
 
+# Auto-recover from errors instead of white screen
+st.config.set_option("runner.fastReruns", True)
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
@@ -508,6 +511,13 @@ if is_night_mode():
 # =============================================================================
 # ANIMATION ENGINE
 # =============================================================================
+# Silent page refresh every 20 minutes to prevent session staleness
+st.markdown("""
+<script>
+setTimeout(function(){ window.location.reload(); }, 1200000);
+</script>
+""", unsafe_allow_html=True)
+
 st.markdown("""<script>
 (function(){
   const store = {};
