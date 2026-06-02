@@ -529,7 +529,7 @@ def night_clock():
         t_arrow  = {"up": " ↑", "down": " ↓", "flat": " →"}.get(wx.get("trend",""), "")
         wx_line1 = f"{wx['condition']}  {wx['temp']}°C{t_arrow}"
         wx_line2 = f"Feels {wx['feels_like']}°C  ·  Wind {wx['wind']:.0f} km/h"
-        wx_sunrise = f"🌅 Sunrise {wx['sunrise']}" if wx.get("sunrise") else ""
+        wx_sunrise = f"Sunrise {wx['sunrise']}" if wx.get("sunrise") else ""
     else:
         wx_line1 = "North Bay, ON"
         wx_line2 = ""
@@ -539,9 +539,9 @@ def night_clock():
         f'<div class="night-clock">{t_str}</div>'
         f'<div class="night-sub">{ampm} · new york et</div>'
         f'<div style="font-size:36px;font-weight:600;color:#c0c0c0;letter-spacing:3px;margin-top:16px;">{date_str}</div>'
-        f'<div style="font-size:30px;font-weight:500;color:#c0c0c0;letter-spacing:1px;margin-top:16px;">🌡 {wx_line1}</div>'
-        f'<div style="font-size:22px;font-weight:400;color:#888;letter-spacing:1px;margin-top:6px;">{wx_line2}</div>'
-        f'<div style="font-size:18px;font-weight:400;color:#666;letter-spacing:1px;margin-top:10px;">{wx_sunrise}</div>'
+        f'<div style="font-size:28px;font-weight:500;color:#c0c0c0;letter-spacing:1px;margin-top:16px;text-align:center;">{wx_line1}</div>'
+        f'<div style="font-size:24px;font-weight:400;color:#c0c0c0;letter-spacing:1px;margin-top:8px;text-align:center;">{wx_line2}</div>'
+        f'<div style="font-size:20px;font-weight:400;color:#c0c0c0;letter-spacing:1px;margin-top:8px;text-align:center;">{wx_sunrise}</div>'
         f'</div>', unsafe_allow_html=True)
 
 if is_night_mode():
@@ -626,7 +626,7 @@ def ticker_bar():
             f'padding:2px 12px;border:1px solid rgba(144,164,174,.15);'
             f'border-radius:2px;vertical-align:middle;font-weight:500;">'
             f'North Bay {wx["temp"]}°C{"↑" if wx.get("trend")=="up" else "↓" if wx.get("trend")=="down" else "→" if wx.get("trend")=="flat" else ""} · {wx["condition"]} · '
-            f'💨 {wx["wind"]:.0f} km/h</span>')
+            f'Wind {wx["wind"]:.0f} km/h</span>')
 
     for h in header:
         if h["type"] == "section":
