@@ -447,7 +447,7 @@ WMO_CODES = {
 def get_north_bay_weather():
     """
     Fetch current weather for North Bay, Ontario via Open-Meteo.
-    Includes 3-hour temperature trend arrow. Cached 15 minutes.
+    Free, no API key. Cached 15 minutes.
     """
     try:
         import requests as _req
@@ -455,51 +455,18 @@ def get_north_bay_weather():
             "https://api.open-meteo.com/v1/forecast"
             "?latitude=46.3135&longitude=-79.4633"
             "&current=temperature_2m,weathercode,windspeed_10m,apparent_temperature"
-            "&hourly=temperature_2m"
-            "&daily=sunrise"
-            "&temperature_unit=celsius&windspeed_unit=kmh"
-            "&timezone=America/Toronto&forecast_days=1",
+            "&temperature_unit=celsius&windspeed_unit=kmh&timezone=America/Toronto",
             timeout=8)
         if r.status_code != 200:
             return None
-        data = r.json()
-        curr = data["current"]
+        curr = r.json()["current"]
         code = int(curr.get("weathercode", 0))
-        temp_now = round(float(curr["temperature_2m"]), 1)
-
-        # 3-hour trend
-        trend = None
-        try:
-            hours = data["hourly"]["time"]
-            temps = data["hourly"]["temperature_2m"]
-            # Match on just the hour portion — current_time may include seconds
-            current_hour = curr["time"][:13]  # e.g. "2026-06-01T05"
-            idx = next((i for i, h in enumerate(hours) if h[:13] == current_hour), None)
-            if idx is not None and idx + 3 < len(temps):
-                diff = float(temps[idx + 3]) - temp_now
-                trend = "up" if diff >= 1.0 else "down" if diff <= -1.0 else "flat"
-        except Exception:
-            pass
-
-        # Parse sunrise time
-        sunrise_str = None
-        try:
-            sunrise_iso = data["daily"]["sunrise"][0]  # e.g. "2026-06-01T05:34"
-            sunrise_str = sunrise_iso.split("T")[1][:5]  # "05:34"
-            # Convert to 12hr format
-            h, m = int(sunrise_str.split(":")[0]), int(sunrise_str.split(":")[1])
-            sunrise_str = f"{h if h <= 12 else h-12}:{m:02d} {'AM' if h < 12 else 'PM'}"
-        except Exception:
-            pass
-
         return {
-            "temp":       temp_now,
+            "temp":       round(float(curr["temperature_2m"]), 1),
             "feels_like": round(float(curr["apparent_temperature"]), 1),
             "wind":       round(float(curr["windspeed_10m"]), 0),
             "condition":  WMO_CODES.get(code, "Unknown"),
             "code":       code,
-            "trend":      trend,
-            "sunrise":    sunrise_str,
         }
     except Exception:
         return None
@@ -526,14 +493,11 @@ def night_clock():
     date_str = now_et.strftime("%A, %B %-d")
     wx = get_north_bay_weather()
     if wx:
-        t_arrow  = {"up": " ↑", "down": " ↓", "flat": " →"}.get(wx.get("trend",""), "")
-        wx_line1 = f"{wx['condition']}  {wx['temp']}°C{t_arrow}"
+        wx_line1 = f"{wx['condition']}  {wx['temp']}°C"
         wx_line2 = f"Feels {wx['feels_like']}°C  ·  Wind {wx['wind']:.0f} km/h"
-        wx_sunrise = f"Sunrise {wx['sunrise']}" if wx.get("sunrise") else ""
     else:
         wx_line1 = "North Bay, ON"
         wx_line2 = ""
-        wx_sunrise = ""
     st.markdown(
         f'<div class="night-screen">'
         f'<div class="night-clock">{t_str}</div>'
@@ -541,7 +505,6 @@ def night_clock():
         f'<div style="font-size:36px;font-weight:600;color:#c0c0c0;letter-spacing:3px;margin-top:16px;">{date_str}</div>'
         f'<div style="font-size:28px;font-weight:500;color:#c0c0c0;letter-spacing:1px;margin-top:16px;text-align:center;">{wx_line1}</div>'
         f'<div style="font-size:24px;font-weight:400;color:#c0c0c0;letter-spacing:1px;margin-top:8px;text-align:center;">{wx_line2}</div>'
-        f'<div style="font-size:20px;font-weight:400;color:#c0c0c0;letter-spacing:1px;margin-top:8px;text-align:center;">{wx_sunrise}</div>'
         f'</div>', unsafe_allow_html=True)
 
 if is_night_mode():
@@ -625,7 +588,7 @@ def ticker_bar():
             f'color:#90a4ae;background:rgba(144,164,174,.06);'
             f'padding:2px 12px;border:1px solid rgba(144,164,174,.15);'
             f'border-radius:2px;vertical-align:middle;font-weight:500;">'
-            f'North Bay {wx["temp"]}°C{"↑" if wx.get("trend")=="up" else "↓" if wx.get("trend")=="down" else "→" if wx.get("trend")=="flat" else ""} · {wx["condition"]} · '
+            f'North Bay {wx["temp"]}°C · {wx["condition"]} · '
             f'Wind {wx["wind"]:.0f} km/h</span>')
 
     for h in header:
