@@ -447,7 +447,7 @@ WMO_CODES = {
 def get_north_bay_weather():
     """
     Fetch current weather for North Bay, Ontario via Open-Meteo.
-    Free, no API key. Cached 30 minutes.
+    Includes 3-hour temperature trend arrow. Cached 15 minutes.
     """
     try:
         import requests as _req
@@ -455,18 +455,38 @@ def get_north_bay_weather():
             "https://api.open-meteo.com/v1/forecast"
             "?latitude=46.3135&longitude=-79.4633"
             "&current=temperature_2m,weathercode,windspeed_10m,apparent_temperature"
-            "&temperature_unit=celsius&windspeed_unit=kmh&timezone=America/Toronto",
+            "&hourly=temperature_2m"
+            "&temperature_unit=celsius&windspeed_unit=kmh"
+            "&timezone=America/Toronto&forecast_days=1",
             timeout=8)
         if r.status_code != 200:
             return None
-        curr = r.json()["current"]
+        data = r.json()
+        curr = data["current"]
         code = int(curr.get("weathercode", 0))
+        temp_now = round(float(curr["temperature_2m"]), 1)
+
+        # 3-hour trend
+        trend = None
+        try:
+            hours = data["hourly"]["time"]
+            temps = data["hourly"]["temperature_2m"]
+            current_time = curr["time"]
+            if current_time in hours:
+                idx = hours.index(current_time)
+                if idx + 3 < len(temps):
+                    diff = float(temps[idx + 3]) - temp_now
+                    trend = "up" if diff >= 1.0 else "down" if diff <= -1.0 else "flat"
+        except Exception:
+            pass
+
         return {
-            "temp":       round(float(curr["temperature_2m"]), 1),
+            "temp":       temp_now,
             "feels_like": round(float(curr["apparent_temperature"]), 1),
             "wind":       round(float(curr["windspeed_10m"]), 0),
             "condition":  WMO_CODES.get(code, "Unknown"),
             "code":       code,
+            "trend":      trend,
         }
     except Exception:
         return None
@@ -492,10 +512,11 @@ def night_clock():
     ampm     = now_et.strftime("%p").lower()
     date_str = now_et.strftime("%A, %B %-d")
     wx = get_north_bay_weather()
-    wx_line = (
-        f"{wx['condition']} · {wx['temp']}°C  Feels {wx['feels_like']}°C · Wind {wx['wind']:.0f} km/h"
-        if wx else "North Bay, ON"
-    )
+    if wx:
+        t_arrow = {"up": " ↑", "down": " ↓", "flat": " →"}.get(wx.get("trend",""), "")
+        wx_line = f"{wx['condition']} · {wx['temp']}°C{t_arrow}  Feels {wx['feels_like']}°C · Wind {wx['wind']:.0f} km/h"
+    else:
+        wx_line = "North Bay, ON"
     st.markdown(
         f'<div class="night-screen">'
         f'<div class="night-clock">{t_str}</div>'
@@ -585,7 +606,7 @@ def ticker_bar():
             f'color:#90a4ae;background:rgba(144,164,174,.06);'
             f'padding:2px 12px;border:1px solid rgba(144,164,174,.15);'
             f'border-radius:2px;vertical-align:middle;font-weight:500;">'
-            f'🌡 North Bay {wx["temp"]}°C · {wx["condition"]} · '
+            f'North Bay {wx["temp"]}°C{"↑" if wx.get("trend")=="up" else "↓" if wx.get("trend")=="down" else "→" if wx.get("trend")=="flat" else ""} · {wx["condition"]} · '
             f'💨 {wx["wind"]:.0f} km/h</span>')
 
     for h in header:
