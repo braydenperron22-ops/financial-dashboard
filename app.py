@@ -456,6 +456,7 @@ def get_north_bay_weather():
             "?latitude=46.3135&longitude=-79.4633"
             "&current=temperature_2m,weathercode,windspeed_10m,apparent_temperature"
             "&hourly=temperature_2m"
+            "&daily=sunrise"
             "&temperature_unit=celsius&windspeed_unit=kmh"
             "&timezone=America/Toronto&forecast_days=1",
             timeout=8)
@@ -480,6 +481,17 @@ def get_north_bay_weather():
         except Exception:
             pass
 
+        # Parse sunrise time
+        sunrise_str = None
+        try:
+            sunrise_iso = data["daily"]["sunrise"][0]  # e.g. "2026-06-01T05:34"
+            sunrise_str = sunrise_iso.split("T")[1][:5]  # "05:34"
+            # Convert to 12hr format
+            h, m = int(sunrise_str.split(":")[0]), int(sunrise_str.split(":")[1])
+            sunrise_str = f"{h if h <= 12 else h-12}:{m:02d} {'AM' if h < 12 else 'PM'}"
+        except Exception:
+            pass
+
         return {
             "temp":       temp_now,
             "feels_like": round(float(curr["apparent_temperature"]), 1),
@@ -487,6 +499,7 @@ def get_north_bay_weather():
             "condition":  WMO_CODES.get(code, "Unknown"),
             "code":       code,
             "trend":      trend,
+            "sunrise":    sunrise_str,
         }
     except Exception:
         return None
@@ -513,16 +526,22 @@ def night_clock():
     date_str = now_et.strftime("%A, %B %-d")
     wx = get_north_bay_weather()
     if wx:
-        t_arrow = {"up": " ↑", "down": " ↓", "flat": " →"}.get(wx.get("trend",""), "")
-        wx_line = f"{wx['condition']} · {wx['temp']}°C{t_arrow}  Feels {wx['feels_like']}°C · Wind {wx['wind']:.0f} km/h"
+        t_arrow  = {"up": " ↑", "down": " ↓", "flat": " →"}.get(wx.get("trend",""), "")
+        wx_line1 = f"{wx['condition']}  {wx['temp']}°C{t_arrow}"
+        wx_line2 = f"Feels {wx['feels_like']}°C  ·  Wind {wx['wind']:.0f} km/h"
+        wx_sunrise = f"🌅 Sunrise {wx['sunrise']}" if wx.get("sunrise") else ""
     else:
-        wx_line = "North Bay, ON"
+        wx_line1 = "North Bay, ON"
+        wx_line2 = ""
+        wx_sunrise = ""
     st.markdown(
         f'<div class="night-screen">'
         f'<div class="night-clock">{t_str}</div>'
         f'<div class="night-sub">{ampm} · new york et</div>'
         f'<div style="font-size:36px;font-weight:600;color:#c0c0c0;letter-spacing:3px;margin-top:16px;">{date_str}</div>'
-        f'<div style="font-size:28px;font-weight:500;color:#c0c0c0;letter-spacing:1px;margin-top:12px;">🌡 {wx_line}</div>'
+        f'<div style="font-size:30px;font-weight:500;color:#c0c0c0;letter-spacing:1px;margin-top:16px;">🌡 {wx_line1}</div>'
+        f'<div style="font-size:22px;font-weight:400;color:#888;letter-spacing:1px;margin-top:6px;">{wx_line2}</div>'
+        f'<div style="font-size:18px;font-weight:400;color:#666;letter-spacing:1px;margin-top:10px;">{wx_sunrise}</div>'
         f'</div>', unsafe_allow_html=True)
 
 if is_night_mode():
