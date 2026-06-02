@@ -472,12 +472,12 @@ def get_north_bay_weather():
         try:
             hours = data["hourly"]["time"]
             temps = data["hourly"]["temperature_2m"]
-            current_time = curr["time"]
-            if current_time in hours:
-                idx = hours.index(current_time)
-                if idx + 3 < len(temps):
-                    diff = float(temps[idx + 3]) - temp_now
-                    trend = "up" if diff >= 1.0 else "down" if diff <= -1.0 else "flat"
+            # Match on just the hour portion — current_time may include seconds
+            current_hour = curr["time"][:13]  # e.g. "2026-06-01T05"
+            idx = next((i for i, h in enumerate(hours) if h[:13] == current_hour), None)
+            if idx is not None and idx + 3 < len(temps):
+                diff = float(temps[idx + 3]) - temp_now
+                trend = "up" if diff >= 1.0 else "down" if diff <= -1.0 else "flat"
         except Exception:
             pass
 
