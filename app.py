@@ -443,7 +443,7 @@ WMO_CODES = {
     96:"Thunderstorm + Hail",99:"Heavy Thunderstorm + Hail",
 }
 
-@st.cache_data(ttl=900, show_spinner=False, experimental_allow_widgets=False)
+@st.cache_data(ttl=900, show_spinner=False)
 def get_north_bay_weather():
     """
     Fetch current weather for North Bay, Ontario via Open-Meteo.
