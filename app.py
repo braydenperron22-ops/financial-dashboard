@@ -313,6 +313,15 @@ def is_futures_window():
     t = now.hour * 60 + now.minute
     return 6*60+30 <= t < 9*60+30
 
+def is_evening_futures_window() -> bool:
+    """Mon-Thu 8pm-10pm ET — evening futures session in indices bar."""
+    tz  = pytz.timezone("America/New_York")
+    now = datetime.now(tz)
+    dow = now.weekday()  # 0=Mon, 3=Thu
+    if dow > 3: return False  # Fri/Sat/Sun handled elsewhere
+    t = now.hour * 60 + now.minute
+    return 20 * 60 <= t < 22 * 60
+
 def is_sunday_futures_open() -> bool:
     """True Sunday 6pm–10pm ET — show equity futures in the indices bar."""
     tz  = pytz.timezone("America/New_York")
@@ -722,7 +731,7 @@ def top_row():
     us_hol   = get_holiday_state("us")
 
     # Pre-market weekday window OR Sunday 6pm-10pm evening open
-    show_futures = is_futures_window() or is_sunday_futures_open()
+    show_futures = is_futures_window() or is_sunday_futures_open() or is_evening_futures_window()
     futures      = get_futures_data() if show_futures else {}
 
     # Map each index slot to its futures replacement during futures window
