@@ -731,7 +731,7 @@ def top_row():
     us_hol   = get_holiday_state("us")
 
     # Pre-market weekday window OR Sunday 6pm-10pm evening open
-    show_futures = is_futures_window() or is_sunday_futures_open() or is_evening_futures_window()
+    show_futures = (is_futures_window() or is_sunday_futures_open() or is_evening_futures_window()) and KEY == "pct_1d"
     futures      = get_futures_data() if show_futures else {}
 
     # Map each index slot to its futures replacement during futures window
