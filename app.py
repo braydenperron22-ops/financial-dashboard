@@ -303,8 +303,8 @@ def in_reset_window():
 def is_night_mode():
     tz  = pytz.timezone("America/New_York")
     now = datetime.now(tz)
-    t = now.hour * 60 + now.minute
-    return t >= 22 * 60 or t < 7 * 60
+    h = now.hour
+    return h >= 22 or h < 7
 
 def is_futures_window():
     tz  = pytz.timezone("America/New_York")
@@ -552,10 +552,29 @@ if is_night_mode():
 # =============================================================================
 # ANIMATION ENGINE
 # =============================================================================
-# Silent page refresh every 20 minutes to prevent session staleness
+# Page refresh every 5 minutes + forced reload at night mode boundaries
 st.markdown("""
 <script>
-setTimeout(function(){ window.location.reload(); }, 600000);
+(function() {
+    // Refresh every 5 minutes to keep session alive
+    setTimeout(function(){ window.location.reload(); }, 300000);
+
+    // Also check every 30 seconds if we've crossed 10pm or 7am
+    // and force a reload to trigger night mode transition
+    function checkNightMode() {
+        var now = new Date();
+        // Convert to ET (UTC-4 or UTC-5)
+        var utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        var et = new Date(utc + (-4 * 3600000)); // approximate ET
+        var h = et.getHours();
+        var m = et.getMinutes();
+        // Within 2 minutes after 10pm or 7am — force reload
+        if ((h === 22 && m <= 2) || (h === 7 && m <= 2)) {
+            window.location.reload();
+        }
+    }
+    setInterval(checkNightMode, 30000);
+})();
 </script>
 """, unsafe_allow_html=True)
 
