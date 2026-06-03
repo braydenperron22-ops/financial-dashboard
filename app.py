@@ -303,9 +303,8 @@ def in_reset_window():
 def is_night_mode():
     tz  = pytz.timezone("America/New_York")
     now = datetime.now(tz)
-    h = now.hour; dow = now.weekday()
-    if dow == 6: return h >= 22 or h < 7
-    return h >= 19 or h < 7
+    t = now.hour * 60 + now.minute
+    return t >= 22 * 60 or t < 7 * 60
 
 def is_futures_window():
     tz  = pytz.timezone("America/New_York")
@@ -334,18 +333,22 @@ FOREX_LABELS = {
 
 def is_futures_active() -> bool:
     """
-    Equity futures trade Sun 6pm ET → Fri 5pm ET.
-    Closed: Fri 5pm → Sun 6pm ET.
-    Returns True when futures are live.
+    Futures schedule:
+    - Sunday:    active from 6pm ET
+    - Mon-Thu:   active from 8pm ET (and all next day until market close)
+    - Friday:    active until 5pm ET, then closed
+    - Saturday:  never active
     """
     tz  = pytz.timezone("America/New_York")
     now = datetime.now(tz)
     dow = now.weekday()   # 0=Mon … 6=Sun
     t   = now.hour * 60 + now.minute
-    if dow == 4 and t >= 17 * 60:   return False  # Fri after 5pm
-    if dow == 5:                     return False  # All Saturday
-    if dow == 6 and t < 18 * 60:    return False  # Sun before 6pm
-    return True
+    if dow == 5:                        return False  # All Saturday
+    if dow == 6:                        return t >= 18 * 60  # Sunday: 6pm+
+    if dow == 4 and t >= 17 * 60:      return False  # Friday after 5pm
+    # Mon-Thu: active from 8pm OR all day (carried over from overnight session)
+    if t >= 20 * 60:                    return True   # after 8pm any weekday
+    return True  # during market hours Mon-Fri
 
 def get_holiday_state(asset_type: str = "us") -> str:
     if asset_type == "btc": return ""
