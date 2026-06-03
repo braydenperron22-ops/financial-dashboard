@@ -485,6 +485,32 @@ def get_north_bay_weather():
 
 
 # =============================================================================
+# DATA HEALTH CHECK
+# =============================================================================
+def get_data_health() -> dict:
+    """
+    Check if yfinance is returning live data by verifying the indices.
+    Returns a status dict with ok=True/False and a message.
+    """
+    indices = get_indices_data() or {}
+    if not indices:
+        return {"ok": False, "msg": "NO DATA — yfinance may be down"}
+
+    # Check if any index has a non-zero price
+    prices = [d.get("price") for d in indices.values() if d.get("price")]
+    if not prices:
+        return {"ok": False, "msg": "NO PRICES — yfinance may be down"}
+
+    # Check if data is stale — all pct_1d exactly 0.00 during market hours
+    session = get_session()
+    if session == "open":
+        all_zero = all(d.get("pct_1d", 0) == 0.0 for d in indices.values())
+        if all_zero:
+            return {"ok": False, "msg": "STALE DATA — all indices showing 0.00%"}
+
+    return {"ok": True, "msg": ""}
+
+# =============================================================================
 # SYNC MODE
 # =============================================================================
 sync_mode()
@@ -591,6 +617,15 @@ def ticker_bar():
     header   = get_header_ticker_data() or []
     fut_live = is_futures_active()
     items    = []
+
+    # yfinance status pill
+    health = get_data_health()
+    if health["ok"]:
+        items.append(
+            '<span style="display:inline-block;margin:0 18px;font-size:11px;'            'font-weight:700;letter-spacing:1.5px;color:#00e676;'            'background:rgba(0,230,118,.08);padding:2px 10px;'            'border:1px solid rgba(0,230,118,.2);border-radius:2px;'            'vertical-align:middle;">YFINANCE ACTIVE</span>')
+    else:
+        items.append(
+            '<span style="display:inline-block;margin:0 18px;font-size:11px;'            'font-weight:700;letter-spacing:1.5px;color:#ff1744;'            'background:rgba(255,23,68,.08);padding:2px 10px;'            'border:1px solid rgba(255,23,68,.2);border-radius:2px;'            'vertical-align:middle;">YFINANCE NOT RESPONDING</span>')
 
     # Weather pill at the start of the tape
     wx = get_north_bay_weather()
