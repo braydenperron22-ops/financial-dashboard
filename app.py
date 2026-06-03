@@ -555,7 +555,7 @@ if is_night_mode():
 # Silent page refresh every 20 minutes to prevent session staleness
 st.markdown("""
 <script>
-setTimeout(function(){ window.location.reload(); }, 1200000);
+setTimeout(function(){ window.location.reload(); }, 600000);
 </script>
 """, unsafe_allow_html=True)
 
@@ -1032,6 +1032,9 @@ st.markdown('<div style="height:2px;background:#1e1e1e;"></div>', unsafe_allow_h
 # =============================================================================
 @st.fragment(run_every=60)
 def bottom_row():
+    if is_night_mode():
+        st.rerun()
+        return
     sync_mode()
     MODE    = get_mode(); KEY = mk(MODE)
     sectors = get_sectors_data()    or {}
