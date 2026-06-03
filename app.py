@@ -557,7 +557,7 @@ st.markdown("""
 <script>
 (function() {
     // Refresh every 5 minutes to keep session alive
-    setTimeout(function(){ window.location.reload(); }, 300000);
+    setTimeout(function(){ window.location.reload(); }, 30000);
 
     // Also check every 30 seconds if we've crossed 10pm or 7am
     // and force a reload to trigger night mode transition
