@@ -987,38 +987,10 @@ with col_port:
             f'<div class="stat-val {cl(alpha)}">'
             f'{f"{alpha:+.0f} bps" if alpha is not None else "—"}</div></div>'
             f'</div>')
-        # ── IBIT / BTC change column logic ───────────────────────────────────
-        # Price is always BTC spot — only the change column switches
-        ibit_data = get_ibit_btc_data() or {}
-        mkt_open  = is_market_session()
-
-        if mkt_open and KEY == "pct_1d":
-            # Market hours 1D → show IBIT % change
-            ibit_px  = ibit_data.get("ibit_price")
-            btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc, KEY=="pct_1d" and "1D" or "")
-            btc_ch     = f"{ba}{bd}"
-            btc_lbl    = "IBIT · 20% WEIGHT"
-        elif not mkt_open and KEY == "pct_1d":
-            # Closed 1D → show IBIT implied vs BTC divergence
-            div     = ibit_data.get("divergence")
-            if div is not None:
-                div_col    = "#00e676" if div >= 0 else "#ff1744"
-                div_ar     = "▲" if div >= 0 else "▼"
-                # Always check BTC sigma regardless of display mode
-                _base = "pos" if div >= 0 else "neg"
-                btc_ch_cls = sigma_class(btc.get("sigma_1d"), _base, "1D")
-                btc_ch     = f'{div_ar}{abs(div):.2f}%'
-                btc_close  = ibit_data.get("btc_close")
-                btc_lbl    = f"SNAPSHOT ${fp(btc_close,0)} · BASELINE"
-            else:
-                btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc, KEY=="pct_1d" and "1D" or "")
-                btc_ch     = f"{ba}{bd}"
-                btc_lbl    = "20% WEIGHT · 24/7"
-        else:
-            # 1M / YTD → always show BTC period change
-            btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc, KEY=="pct_1d" and "1D" or "")
-            btc_ch     = f"{ba}{bd}"
-            btc_lbl    = "20% WEIGHT · 24/7"
+        # BTC: always show BTC's own change 24/7, sigma pulse active in 1D
+        btc_ch_cls = sigma_class(btc.get("sigma_1d"), bc, KEY=="pct_1d" and "1D" or "")
+        btc_ch     = f"{ba}{bd}"
+        btc_lbl    = "20% WEIGHT · 24/7"
 
         table = (
             f'<div class="pt-hd" style="grid-template-columns:1fr 1.1fr 1fr 1fr;">'
