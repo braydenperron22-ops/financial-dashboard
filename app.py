@@ -771,8 +771,11 @@ summary_bar()
 # =============================================================================
 @st.fragment(run_every=60)
 def top_row():
-    market  = get_market_status() or {}
-    indices = get_indices_data()  or {}
+    try:
+        market  = get_market_status() or {}
+        indices = get_indices_data()  or {}
+    except Exception:
+        return
     # If night mode just started, trigger full rerun to show night screen
     if is_night_mode():
         st.rerun()
