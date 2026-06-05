@@ -552,31 +552,27 @@ if is_night_mode():
 # =============================================================================
 # ANIMATION ENGINE
 # =============================================================================
-# Page refresh every 5 minutes + forced reload at night mode boundaries
+# Smart refresh — fast near boundaries, slow otherwise
 st.markdown("""
 <script>
 (function() {
-    // Refresh every 5 minutes to keep session alive
-    setTimeout(function(){ window.location.reload(); }, 30000);
-
-    // Also check every 30 seconds if we've crossed 10pm or 7am
-    // and force a reload to trigger night mode transition
-    function checkNightMode() {
+    function getET() {
         var now = new Date();
-        // Convert to ET (UTC-4 or UTC-5)
         var utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-        var et = new Date(utc + (-4 * 3600000)); // approximate ET
-        var h = et.getHours();
-        var m = et.getMinutes();
-        // Within 2 minutes after 10pm or 7am — force reload
-        if ((h === 22 && m <= 2) || (h === 7 && m <= 2)) {
-            window.location.reload();
-        }
+        return new Date(utc + (-4 * 3600000));
     }
-    setInterval(checkNightMode, 30000);
+    function scheduleReload() {
+        var et = getET();
+        var h = et.getHours(), m = et.getMinutes();
+        var atBoundary = (h === 21 && m >= 55) || (h === 22 && m <= 5) ||
+                         (h === 6  && m >= 55) || (h === 7  && m <= 5);
+        setTimeout(function(){ window.location.reload(); }, atBoundary ? 10000 : 600000);
+    }
+    scheduleReload();
 })();
 </script>
 """, unsafe_allow_html=True)
+
 
 st.markdown("""<script>
 (function(){
@@ -776,11 +772,6 @@ def top_row():
         indices = get_indices_data()  or {}
     except Exception:
         return
-    # If night mode just started, trigger full rerun to show night screen
-    if is_night_mode():
-        st.rerun()
-        return
-
     sync_mode()
     MODE = get_mode(); KEY = mk(MODE)
     now_et   = datetime.now(pytz.timezone("America/New_York"))
@@ -1026,9 +1017,6 @@ st.markdown('<div style="height:2px;background:#1e1e1e;"></div>', unsafe_allow_h
 # =============================================================================
 @st.fragment(run_every=60)
 def bottom_row():
-    if is_night_mode():
-        st.rerun()
-        return
     sync_mode()
     MODE    = get_mode(); KEY = mk(MODE)
     sectors = get_sectors_data()    or {}
