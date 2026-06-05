@@ -556,19 +556,37 @@ if is_night_mode():
 st.markdown("""
 <script>
 (function() {
-    function getET() {
+    function getETHour() {
+        // Use Intl API for accurate ET regardless of DST
         var now = new Date();
-        var utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-        return new Date(utc + (-4 * 3600000));
+        var parts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            hour: 'numeric', minute: 'numeric', hour12: false
+        }).formatToParts(now);
+        var h = parseInt(parts.find(p => p.type === 'hour').value);
+        var m = parseInt(parts.find(p => p.type === 'minute').value);
+        return { h: h, m: m };
     }
-    function scheduleReload() {
-        var et = getET();
-        var h = et.getHours(), m = et.getMinutes();
-        var atBoundary = (h === 21 && m >= 55) || (h === 22 && m <= 5) ||
-                         (h === 6  && m >= 55) || (h === 7  && m <= 5);
-        setTimeout(function(){ window.location.reload(); }, atBoundary ? 10000 : 600000);
+
+    // Check every 10 seconds if we are at a boundary, else every 10 minutes
+    function tick() {
+        var t = getETHour();
+        var atBoundary = (t.h === 21 && t.m >= 55) ||
+                         (t.h === 22 && t.m <= 5)  ||
+                         (t.h === 6  && t.m >= 55) ||
+                         (t.h === 7  && t.m <= 5);
+        if (atBoundary) {
+            window.location.reload();
+        } else {
+            setTimeout(tick, 600000); // check again in 10 min
+        }
     }
-    scheduleReload();
+
+    // Run first tick after 10 seconds so page finishes loading first
+    setTimeout(tick, 10000);
+
+    // Also always reload every 20 minutes as a hard backstop
+    setTimeout(function(){ window.location.reload(); }, 1200000);
 })();
 </script>
 """, unsafe_allow_html=True)
