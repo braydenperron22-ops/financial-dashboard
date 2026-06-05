@@ -549,6 +549,12 @@ if is_night_mode():
     night_clock()
     st.stop()
 
+# Warm the cache on startup so fragments don't cold-fetch simultaneously
+try:
+    prefetch_all()
+except Exception:
+    pass
+
 # =============================================================================
 # ANIMATION ENGINE
 # =============================================================================
