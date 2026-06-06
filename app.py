@@ -545,19 +545,6 @@ def night_clock():
         f'<div style="font-size:24px;font-weight:400;color:#c0c0c0;letter-spacing:1px;margin-top:8px;text-align:center;">{wx_line2}</div>'
         f'</div>', unsafe_allow_html=True)
 
-if is_night_mode():
-    night_clock()
-    st.stop()
-
-# Warm the cache on startup so fragments don't cold-fetch simultaneously
-try:
-    prefetch_all()
-except Exception:
-    pass
-
-# =============================================================================
-# ANIMATION ENGINE
-# =============================================================================
 # Smart refresh — fast near boundaries, slow otherwise
 st.markdown("""
 <script>
@@ -596,6 +583,20 @@ st.markdown("""
 })();
 </script>
 """, unsafe_allow_html=True)
+
+if is_night_mode():
+    night_clock()
+    st.stop()
+
+# Warm the cache on startup so fragments don't cold-fetch simultaneously
+try:
+    prefetch_all()
+except Exception:
+    pass
+
+# =============================================================================
+# ANIMATION ENGINE
+# =============================================================================
 
 
 st.markdown("""<script>
