@@ -228,12 +228,7 @@ div[class*="skeleton"] {
 .mci-sigma-neg { animation:sigma-glow-neg 1.2s ease-in-out infinite; padding:0 4px; border-radius:4px; }
 
 /* NIGHT MODE */
-.night-screen { position:fixed; top:0; left:0; width:100vw; height:100vh;
-  background:#000; z-index:9999; display:flex; align-items:center;
-  justify-content:center; flex-direction:column; gap:8px; }
-.night-clock { font-family:'Roboto',sans-serif !important;
-  font-size:120px; font-weight:700; color:#c0c0c0; letter-spacing:-4px; line-height:1; }
-.night-sub   { font-size:16px; color:#888888; letter-spacing:4px; font-weight:500; }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -300,11 +295,6 @@ def in_reset_window():
     t = now.hour * 60 + now.minute
     return 4*60 <= t < 9*60+30
 
-def is_night_mode():
-    tz  = pytz.timezone("America/New_York")
-    now = datetime.now(tz)
-    h = now.hour
-    return h >= 22 or h < 7
 
 def is_futures_window():
     tz  = pytz.timezone("America/New_York")
@@ -518,75 +508,6 @@ sync_mode()
 # =============================================================================
 # NIGHT MODE
 # =============================================================================
-@st.fragment(run_every=60)
-def night_clock():
-    if not is_night_mode():
-        # Night mode ended — force full page rerun to load the dashboard
-        st.rerun()
-        return
-    tz       = pytz.timezone("America/New_York")
-    now_et   = datetime.now(tz)
-    t_str    = now_et.strftime("%-I:%M")
-    ampm     = now_et.strftime("%p").lower()
-    date_str = now_et.strftime("%A, %B %-d")
-    wx = get_north_bay_weather()
-    if wx:
-        wx_line1 = f"{wx['condition']}  {wx['temp']}°C"
-        wx_line2 = f"Feels {wx['feels_like']}°C  ·  Wind {wx['wind']:.0f} km/h"
-    else:
-        wx_line1 = "North Bay, ON"
-        wx_line2 = ""
-    st.markdown(
-        f'<div class="night-screen">'
-        f'<div class="night-clock">{t_str}</div>'
-        f'<div class="night-sub">{ampm} · new york et</div>'
-        f'<div style="font-size:36px;font-weight:600;color:#c0c0c0;letter-spacing:3px;margin-top:16px;">{date_str}</div>'
-        f'<div style="font-size:28px;font-weight:500;color:#c0c0c0;letter-spacing:1px;margin-top:16px;text-align:center;">{wx_line1}</div>'
-        f'<div style="font-size:24px;font-weight:400;color:#c0c0c0;letter-spacing:1px;margin-top:8px;text-align:center;">{wx_line2}</div>'
-        f'</div>', unsafe_allow_html=True)
-
-# Smart refresh — fast near boundaries, slow otherwise
-st.markdown("""
-<script>
-(function() {
-    function getETHour() {
-        // Use Intl API for accurate ET regardless of DST
-        var now = new Date();
-        var parts = new Intl.DateTimeFormat('en-US', {
-            timeZone: 'America/New_York',
-            hour: 'numeric', minute: 'numeric', hour12: false
-        }).formatToParts(now);
-        var h = parseInt(parts.find(p => p.type === 'hour').value);
-        var m = parseInt(parts.find(p => p.type === 'minute').value);
-        return { h: h, m: m };
-    }
-
-    // Check every 10 seconds if we are at a boundary, else every 10 minutes
-    function tick() {
-        var t = getETHour();
-        var atBoundary = (t.h === 21 && t.m >= 55) ||
-                         (t.h === 22 && t.m <= 5)  ||
-                         (t.h === 6  && t.m >= 55) ||
-                         (t.h === 7  && t.m <= 5);
-        if (atBoundary) {
-            window.location.reload();
-        } else {
-            setTimeout(tick, 600000); // check again in 10 min
-        }
-    }
-
-    // Run first tick after 10 seconds so page finishes loading first
-    setTimeout(tick, 10000);
-
-    // Also always reload every 20 minutes as a hard backstop
-    setTimeout(function(){ window.location.reload(); }, 1200000);
-})();
-</script>
-""", unsafe_allow_html=True)
-
-if is_night_mode():
-    night_clock()
-    st.stop()
 
 # Warm the cache on startup so fragments don't cold-fetch simultaneously
 try:
